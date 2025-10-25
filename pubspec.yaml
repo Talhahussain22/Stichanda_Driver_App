@@ -25,6 +25,7 @@ dependencies:
   equatable: ^2.0.7
   dotted_border: ^2.1.0
   image_picker: ^1.2.0
+  modal_progress_hud_nsn: ^0.5.1
 
 flutter:
 

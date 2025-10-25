@@ -5,7 +5,9 @@ class CustomTextField extends StatefulWidget {
   final TextEditingController controller;
   final TextInputType? keyboardType;
   final bool obscureText;
-  CustomTextField({super.key, required this.hintText,required this.controller,this.keyboardType=TextInputType.text,this.obscureText=false});
+  final String? Function(String?)? validator;
+  final Widget? prefixIcon;
+  CustomTextField({super.key, required this.hintText,required this.controller,this.keyboardType=TextInputType.text,this.obscureText=false, this.validator, this.prefixIcon});
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -17,19 +19,20 @@ class _CustomTextFieldState extends State<CustomTextField> {
   @override
   Widget build(BuildContext context) {
     return Padding(padding: EdgeInsets.symmetric(horizontal: 16,vertical: 10),
-      child:TextField(
+      child:TextFormField(
         controller: widget.controller,
         keyboardType: widget.keyboardType,
-        obscureText: isvisible?false:true,
+        obscureText: widget.obscureText ? isvisible : false,
+        validator: widget.validator,
         decoration: InputDecoration(
-
+          prefixIcon: widget.prefixIcon,
           filled: true,
           fillColor: Colors.grey.shade200,
           hintStyle: TextStyle(color: Colors.black38),
           hintText: widget.hintText,
           suffixIcon: widget.obscureText?(IconButton(
             icon: Icon(
-              isvisible ? Icons.visibility : Icons.visibility_off,
+              isvisible ? Icons.visibility_off : Icons.visibility,
               color: Colors.black38,
             ),
             onPressed: toggleVisibility,

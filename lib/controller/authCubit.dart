@@ -1,74 +1,182 @@
 import 'package:bloc/bloc.dart';
+import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:stichanda_driver/data/models/profile_model.dart';
 import 'package:stichanda_driver/data/repository/auth_repo.dart';
 import 'package:stichanda_driver/services/location_service.dart';
-import 'package:equatable/equatable.dart';
 
-import '../data/models/profile_model.dart';
+import '../helper/firebase_error_handler.dart';
 
 class AuthState extends Equatable {
-  final ProfileModel? profileModel;
-  final bool isloading;
+  final bool isLoading;
+  final bool isAuthenticated;
+  final ProfileModel? profile;
   final String? errorMessage;
 
+  const AuthState({
+    this.isLoading = false,
+    this.isAuthenticated = false,
+    this.profile,
+    this.errorMessage,
+  });
 
-  const AuthState({this.profileModel,this.isloading=false,this.errorMessage});
-
-  AuthState copyWith({ProfileModel? profileModel,bool? isloading,String? errorMessage}) {
+  AuthState copyWith({
+    bool? isLoading,
+    bool? isAuthenticated,
+    ProfileModel? profile,
+    String? errorMessage,
+  }) {
     return AuthState(
-      isloading: isloading??this.isloading,
-      profileModel: profileModel ?? this.profileModel,
-      errorMessage: errorMessage ?? this.errorMessage,
+      isLoading: isLoading ?? this.isLoading,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      profile: profile ?? this.profile,
+      errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [profileModel,isloading,errorMessage];
+  List<Object?> get props => [isLoading, isAuthenticated, profile, errorMessage];
 }
 
 class AuthCubit extends Cubit<AuthState> {
-  AuthCubit() : super(const AuthState());
+  final AuthRepo _authRepo;
+  final LocationService _locationService;
 
-  final authRepo=AuthRepo();
-  // Authentication logic here
+  AuthCubit({
+    required AuthRepo authRepo,
+    required LocationService locationService,
+  })  : _authRepo = authRepo,
+        _locationService = locationService,
+        super(const AuthState());
 
-  Future<User?> signUp({required String email, required String password}) async {
-    emit(state.copyWith(isloading: true));
-    try
-        {
-          authRepo.signUpWithEmailAndPassword(email, password);
-        }
-     catch(e){
-        emit(state.copyWith(isloading: false,errorMessage: e.toString()));
-     }
+
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String fname,
+    required String lname,
+    required String phone,
+  }) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+
+    final result = await _authRepo.signUpWithEmailAndPassword(
+      email,
+      password,
+      fname,
+      lname,
+      phone,
+    );
+
+    if (result.success) {
+      final profile = await _authRepo.getDriverProfile();
+      emit(state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: profile,
+      ));
+    } else {
+      emit(state.copyWith(isLoading: false, errorMessage: result.message));
+    }
   }
 
 
-  Future<bool> updateActiveStatus(int tempstatus) async {
-    final response = await authRepo.updateActiveStatus();
-    if (response==true ){
-      int newActiveStatus = tempstatus;
+  Future<void> login({
+    required String email,
+    required String password,
+  }) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
 
-        // Create a new ProfileModel instance with updated active status
-        // the profile here would be driver profile locally stored in state
-        // int newActiveStatus = profile.active == 0 ? 1 : 0;
-        // ProfileModel updatedProfile = profile.copyWith(active: newActiveStatus);
+    final result = await _authRepo.signInWithEmailAndPassword(email, password);
+    print("Login result: ${result.success}, message: ${result.message}");
 
-        // showCustomSnackBar(response.body['message'], isError: false);
-
-        // emit(state.copyWith(profileModel: updatedProfile));
-
-
-          if (newActiveStatus == 1) {
-            await LocationService().start();
-          } else {
-            await LocationService().stop();
-          }
-
-      }
-      return Future.value(true);
-
+    if (result.success) {
+      final profile = await _authRepo.getDriverProfile();
+      emit(state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: profile,
+      ));
+    } else {
+      emit(state.copyWith(isLoading: false, errorMessage: result.message));
     }
+  }
+
+  /// 🔹 Fetch Profile (on app start or refresh)
+  Future<void> fetchProfile() async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        emit(state.copyWith(isLoading: false, isAuthenticated: false));
+        return;
+      }
+
+      final profile = await _authRepo.getDriverProfile();
+      emit(state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: profile,
+      ));
+    } on FirebaseAuthException catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: FirebaseErrorHandler.getErrorMessage(e, context: 'fetchProfile')));
+    }
+    catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      await _authRepo.sendPasswordResetEmail(email);
+      emit(state.copyWith(isLoading: false));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    }
+  }
 
 
+  Future<void> updateActiveStatus(int newStatus) async {
+    if (state.profile == null) return;
+
+    emit(state.copyWith(isLoading: true));
+
+    final success = await _authRepo.updateActiveStatus(newStatus);
+    if (success) {
+      final updatedProfile = state.profile!.copyWith(
+        availabilityStatus: newStatus,
+        updatedAt: DateTime.now(),
+      );
+
+      if (newStatus == 1) {
+        await _locationService.start();
+      } else {
+        await _locationService.stop();
+      }
+
+      emit(state.copyWith(
+        isLoading: false,
+        profile: updatedProfile,
+      ));
+    } else {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: "Failed to update availability status",
+      ));
+    }
+  }
+
+
+  Future<void> logout() async {
+    emit(state.copyWith(isLoading: true));
+
+    await _authRepo.signOut();
+
+    emit(const AuthState(
+      isAuthenticated: false,
+      profile: null,
+      isLoading: false,
+    ));
+  }
 }

@@ -9,13 +9,13 @@ import '../../../../data/models/order_model.dart';
 class OrderRequestWidget extends StatefulWidget {
   final OrderModel order;
   final VoidCallback? onAccept;
-  final VoidCallback? onIgnore;
+
 
   const OrderRequestWidget({
     super.key,
     required this.order,
     this.onAccept,
-    this.onIgnore,
+
   });
 
   @override
@@ -62,10 +62,10 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      final pickupLat = double.tryParse(widget.order.pickuplatitude) ?? 0.0;
-      final pickupLng = double.tryParse(widget.order.pickuplongitude) ?? 0.0;
-      final dropoffLat = double.tryParse(widget.order.dropofflatitude) ?? 0.0;
-      final dropoffLng = double.tryParse(widget.order.dropofflongitude) ?? 0.0;
+      final pickupLat = double.tryParse(widget.order.pickupLocation.latitude) ?? 0.0;
+      final pickupLng = double.tryParse(widget.order.pickupLocation.longitude) ?? 0.0;
+      final dropoffLat = double.tryParse(widget.order.dropoffLocation.latitude) ?? 0.0;
+      final dropoffLng = double.tryParse(widget.order.dropoffLocation.longitude) ?? 0.0;
 
       final double driverToPickup =
       _calculateDistance(pos.latitude, pos.longitude, pickupLat, pickupLng);
@@ -186,12 +186,12 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
             _buildLocationRow(
               icon: Icons.store,
               label: "Pickup Location",
-              address: order.pickupLocation,
+              address: order.pickupLocation.location,
               distanceText:
               "📍 You are ${_distanceToPickup?.toStringAsFixed(2)} km away",
               onViewMap: () => _openGoogleMaps(
-                  double.tryParse(order.pickuplatitude) ?? 0.0,
-                  double.tryParse(order.pickuplongitude) ?? 0.0,
+                  double.tryParse(order.pickupLocation.latitude) ?? 0.0,
+                  double.tryParse(order.pickupLocation.longitude) ?? 0.0,
                   "Pickup"),
             ),
             const SizedBox(height: 8),
@@ -200,12 +200,12 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
             _buildLocationRow(
               icon: Icons.location_pin,
               label: "Dropoff Location",
-              address: order.dropoffLocation,
+              address: order.dropoffLocation.location,
               distanceText:
               "🚚 Customer is ${_distancePickupToDropoff?.toStringAsFixed(2)} km from pickup",
               onViewMap: () => _openGoogleMaps(
-                  double.tryParse(order.dropofflatitude) ?? 0.0,
-                  double.tryParse(order.dropofflongitude) ?? 0.0,
+                  double.tryParse(order.dropoffLocation.latitude) ?? 0.0,
+                  double.tryParse(order.dropoffLocation.longitude) ?? 0.0,
                   "Dropoff"),
             ),
             const Divider(height: 24),
@@ -215,20 +215,8 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
 
             // Buttons
             Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: widget.onIgnore,
-                  icon: const Icon(Icons.close, color: Colors.red),
-                  label: const Text("Ignore",
-                      style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
+
+
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: widget.onAccept,

@@ -5,6 +5,7 @@ import 'package:stichanda_driver/services/location_service.dart';
 import '../../../../controller/authCubit.dart';
 import '../../../../utils/dimension.dart';
 import '../../../../utils/style.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class HomepageAppBar extends StatefulWidget implements PreferredSizeWidget {
   @override
@@ -82,7 +83,7 @@ class _HomepageAppBarState extends State<HomepageAppBar> {
 
   /// When driver goes online: start location tracking
   Future<void> _handleGoingOnline() async {
-    final authCubit = AuthCubit();
+    final authCubit = context.read<AuthCubit>();
 
     // Start location tracking service
     final started = await locationService.start();
@@ -108,7 +109,7 @@ class _HomepageAppBarState extends State<HomepageAppBar> {
 
   /// When driver goes offline: stop location tracking
   Future<void> _handleGoingOffline() async {
-    final authCubit = AuthCubit();
+    final authCubit = context.read<AuthCubit>();
 
     await locationService.stop();
     authCubit.updateActiveStatus(0);

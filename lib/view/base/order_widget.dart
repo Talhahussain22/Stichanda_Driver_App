@@ -88,9 +88,9 @@ class OrderWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                  isPickedUp
-                      ? order.dropoffLocation
-                      : order.pickupLocation,
-                      
+                      ? order.dropoffLocation.location
+                      : order.pickupLocation.location,
+
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).disabledColor,
                   ),
@@ -110,7 +110,7 @@ class OrderWidget extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onDetailsPressed ??
                           () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId!)));
+                        // Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId!)));
                       },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -122,9 +122,9 @@ class OrderWidget extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    
-                    final lat =isPickedUp?order.dropofflatitude:order.pickuplatitude;
-                    final lng =isPickedUp? order.dropofflongitude:order.pickuplongitude;
+
+                    final lat =isPickedUp?order.dropoffLocation.latitude:order.pickupLocation.latitude;
+                    final lng =isPickedUp? order.dropoffLocation.longitude:order.pickupLocation.longitude;
                     final url =
                         'https://www.google.com/maps/dir/?api=1&destination=${double.parse(lat)},${double.parse(lng)}&mode=d';
 
