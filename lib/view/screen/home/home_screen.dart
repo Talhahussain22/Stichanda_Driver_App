@@ -16,47 +16,26 @@ import '../../base/order_shimmer.dart';
 import '../../base/title_widget.dart';
 import '../order/running_order.dart';
 
-class HomeScreenUI extends StatelessWidget {
+class HomeScreenUI extends StatefulWidget {
   // Data for the screen
-  final bool isLoading;
-  final List<Widget> activeOrderWidgets;
 
-  final String? todaysOrderCount;
-  final String? thisWeekOrderCount;
-  final String? totalOrderCount;
-
-
-
-  // Callbacks for actions
-  // final Future<void>? Function() onRefresh;
-
-  final ValueChanged<bool>? onToggleOnlineStatus;
-  final VoidCallback? onNotificationTap;
-  final bool isOnline;
-  final bool hasNotification;
-
-   HomeScreenUI({
-    Key? key,
-    required this.isLoading,
-    required this.activeOrderWidgets,
-    required this.todaysOrderCount,
-    required this.thisWeekOrderCount,
-    required this.totalOrderCount,
-    // required this.onRefresh,
-    required this.onToggleOnlineStatus,
-    required this.onNotificationTap,
-    required this.isOnline,
-    required this.hasNotification,
-  }) : super(key: key);
-
-
+  HomeScreenUI({Key? key}) : super(key: key);
 
   @override
+  State<HomeScreenUI> createState() => _HomeScreenUIState();
+}
+
+class _HomeScreenUIState extends State<HomeScreenUI> {
+
+  @override
+  void initState() {
+    context.read<OrderCubit>().fetchCurrentOrder();
+    super.initState();
+  }
+  @override
   Widget build(BuildContext context) {
-
-
     return BlocBuilder<OrderCubit, OrderState>(
-      builder: (context,state) {
+      builder: (context, state) {
         final bool hasActiveOrder = state.currentOrder != null;
 
         return Scaffold(
@@ -71,20 +50,17 @@ class HomeScreenUI extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Active Orders Section
-                if (hasActiveOrder)
-                  Text('Active Order', style: robotoMedium),
+                if (hasActiveOrder) Text('Active Order', style: robotoMedium),
 
-                if (isLoading || hasActiveOrder)
+                if (state.isLoading || hasActiveOrder)
                   const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
-                if (isLoading)
+                if (state.isLoading)
                   const OrderShimmer(isEnabled: true)
                 else if (hasActiveOrder)
-                  OrderWidget(order: state.currentOrder!,isRunningOrder: true,),
+                  OrderWidget(order: state.currentOrder!, isRunningOrder: true),
 
-
-
-                if (isLoading || hasActiveOrder)
+                if (state.isLoading || hasActiveOrder)
                   const SizedBox(height: Dimensions.paddingSizeLarge),
 
                 // Orders Count Section
@@ -97,7 +73,7 @@ class HomeScreenUI extends StatelessWidget {
                         title: 'Today\'s Orders',
                         backgroundColor: Theme.of(context).primaryColor,
                         height: 180,
-                        value: todaysOrderCount,
+                        value: state.todaysOrderCount.toString(),
                       ),
                     ),
                     const SizedBox(width: Dimensions.paddingSizeDefault),
@@ -107,7 +83,7 @@ class HomeScreenUI extends StatelessWidget {
                         backgroundColor:
                             Theme.of(context).primaryColor, // Example color
                         height: 180,
-                        value: thisWeekOrderCount,
+                        value: state.weeklyOrderCount.toString(),
                       ),
                     ),
                   ],
@@ -115,9 +91,10 @@ class HomeScreenUI extends StatelessWidget {
                 const SizedBox(height: Dimensions.paddingSizeDefault),
                 CountCard(
                   title: 'Total Orders',
-                  backgroundColor: Theme.of(context).primaryColor, // Example color
+                  backgroundColor:
+                      Theme.of(context).primaryColor, // Example color
                   height: 140,
-                  value: totalOrderCount,
+                  value: state.totalOrderCount.toString(),
                 ),
                 const SizedBox(height: Dimensions.paddingSizeDefault),
 
@@ -126,7 +103,7 @@ class HomeScreenUI extends StatelessWidget {
             ),
           ),
         );
-      }
+      },
     );
   }
 }

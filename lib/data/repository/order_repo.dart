@@ -53,13 +53,34 @@ class DriverOrderRepository {
     }
   }
 
+  Future<void> completeOrder(String orderId) async {
+    String currentRiderId=_instance.currentUser!.uid;
+    try {
+      await _firestore.collection('order').doc(orderId).update({
+        'status': 'completed',
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      await _firestore.collection('driver').doc(currentRiderId).update({
+
+        'is_assigned': 0,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseAuthException catch (e) {
+      throw FirebaseErrorHandler.getErrorMessage(e, context: 'completeOrder');
+    }
+  }
+
   Future<bool> acceptOrder(String orderId) async {
     String currentRiderId=_instance.currentUser!.uid;
     try {
       await _firestore.collection('order').doc(orderId).update({
         'rider_id': currentRiderId,
         'status': 'assigned',
+      });
+      await _firestore.collection('driver').doc(currentRiderId).update({
 
+        'is_assigned': 1,
+        'updated_at': FieldValue.serverTimestamp(),
       });
       return true;
     } on FirebaseAuthException catch (e) {

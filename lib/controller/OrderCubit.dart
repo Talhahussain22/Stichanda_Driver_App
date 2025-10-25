@@ -13,13 +13,18 @@ class OrderState extends Equatable {
   final OrderModel? currentOrder;
   final String? errorMessage;
   final OrderModel? selectedOrder;
-
+  final int todaysOrderCount;
+  final int totalOrderCount;
+  final int weeklyOrderCount;
   const OrderState({
     this.isLoading = false,
     this.orders = const [],
     this.errorMessage,
     this.selectedOrder,
     this.currentOrder,
+    this.todaysOrderCount=2,
+    this.weeklyOrderCount=5,
+    this.totalOrderCount=20,
   });
 
   OrderState copyWith({
@@ -82,6 +87,7 @@ class OrderCubit extends Cubit<OrderState> {
 
     try {
       final orders = await _orderRepository.fetchOrders('unassigned', null);
+
       emit(state.copyWith(
         isLoading: false,
         orders: orders,

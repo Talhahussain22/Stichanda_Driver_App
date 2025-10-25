@@ -117,10 +117,10 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
+    print('Building OrderRequestWidget for Order ID: ${order.orderId} with status: ${order.status}');
 
-    return order.status.toLowerCase() != 'pending'
-        ? const SizedBox() // hide non-pending orders
-        : Card(
+    return  // hide non-pending orders
+        Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape:

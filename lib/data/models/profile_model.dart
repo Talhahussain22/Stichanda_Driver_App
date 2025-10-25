@@ -13,6 +13,7 @@ class ProfileModel {
   final GeoLocation currentLocation;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int isAssigned;
 
   ProfileModel({
     required this.driverId,
@@ -27,6 +28,7 @@ class ProfileModel {
     required this.currentLocation,
     required this.createdAt,
     required this.updatedAt,
+    required this.isAssigned
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -60,25 +62,13 @@ class ProfileModel {
           ? (json['updated_at'] as Timestamp).toDate()
           : DateTime.tryParse(json['updated_at'].toString()) ??
           DateTime.now(),
+      isAssigned: (json['is_assigned'] is num)
+          ? (json['is_assigned'] as num).toInt()
+          : int.tryParse(json['is_assigned'].toString()) ?? 0,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'driver_id': driverId,
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'image_path': imagePath,
-      'cnic_image_path': cnicImagePath,
-      'availiability_status': availabilityStatus,
-      'verification_status': verificationStatus,
-      'review': review,
-      'current_location': currentLocation.toJson(),
-      'created_at': Timestamp.fromDate(createdAt),
-      'updated_at': Timestamp.fromDate(updatedAt),
-    };
-  }
+
 
 
   ProfileModel copyWith({
@@ -95,6 +85,7 @@ class ProfileModel {
     GeoLocation? currentLocation,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? isAssigned
   }) {
     return ProfileModel(
       driverId: driverId ?? this.driverId,
@@ -109,6 +100,7 @@ class ProfileModel {
       currentLocation: currentLocation ?? this.currentLocation,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isAssigned: isAssigned ?? this.isAssigned
     );
   }
 

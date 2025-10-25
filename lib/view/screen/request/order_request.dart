@@ -17,19 +17,22 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
 
   @override
   void initState() {
-    super.initState();
     _loadOrders();
+    super.initState();
+
 
   }
 
-  void _loadOrders() {
-      context.read<OrderCubit>().fetchUnAssignedOrders();
+  Future _loadOrders() async{
+      await context.read<OrderCubit>().fetchUnAssignedOrders();
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<OrderCubit, OrderState>(
       builder: (context,state) {
+
+
         if(state.orders==null){
           return const Center(child: CircularProgressIndicator());
         }

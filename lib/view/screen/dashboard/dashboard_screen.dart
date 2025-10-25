@@ -21,7 +21,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
   }
   final _screens=[
-    HomeScreenUI(isLoading: false, activeOrderWidgets: [SizedBox()], todaysOrderCount: '2', thisWeekOrderCount: '5', totalOrderCount: '10',  onToggleOnlineStatus: null, onNotificationTap: null, isOnline: true, hasNotification: true),
+    HomeScreenUI(),
     OrderRequestScreen(),
     const OrderScreen(),
     const ProfileScreen()
@@ -32,13 +32,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if(index==1){
       // Check online availability (Firestore status)
       final availability = context.read<AuthCubit>().state.profile?.availabilityStatus ?? 0;
-      if(availability!=1){
+      final isassigned = context.read<AuthCubit>().state.profile?.isAssigned ?? 0;
+
+      if(availability!=1 ){
         await showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx)=>AlertDialog(
             title: const Text('Offline'),
             content: const Text('You are offline now. You have to go online to view order requests'),
+            actions: [
+              TextButton(onPressed: ()=>Navigator.of(ctx).pop(), child: const Text('OK'))
+            ],
+          ),
+        );
+        return;
+      }
+
+      else if(isassigned==1){
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx)=>AlertDialog(
+            title: const Text('Busy'),
+            content: const Text('You are assigned to an order. You cannot view new order requests now.'),
             actions: [
               TextButton(onPressed: ()=>Navigator.of(ctx).pop(), child: const Text('OK'))
             ],
