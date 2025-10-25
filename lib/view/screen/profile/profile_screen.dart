@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:stichanda_driver/view/screen/auth/login/login_screen.dart';
 import 'package:stichanda_driver/view/screen/profile/update_profile_screen.dart';
+
+import '../../../controller/authCubit.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -100,7 +104,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.logout_outlined,
                       title: 'Logout',
                       iconColor: Colors.red,
-                      onTap: () => _showSnack(context, 'Logout tapped'),
+                      onTap: (){
+                        context.read<AuthCubit>().logout();
+                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>LoginScreen()), (route)=>false);
+                      }
                     ),
                   ],
                 ),

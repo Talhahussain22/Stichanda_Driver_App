@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:stichanda_driver/helper/validation_helper.dart';
 import 'package:stichanda_driver/view/base/custom_button.dart';
 import 'package:stichanda_driver/view/base/custom_text_field.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:stichanda_driver/view/screen/dashboard/dashboard_screen.dart';
+import 'package:stichanda_driver/view/screen/auth/pending_status_screen.dart';
 
 import '../../../../controller/authCubit.dart';
 
@@ -103,141 +105,144 @@ class _SignupScreenState extends State<SignupScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Sign up successful!')),
             );
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>DashboardScreen()), (Route<dynamic> route) => false);
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>const PendingStatusScreen()), (Route<dynamic> route) => false);
           }
         },
         builder: (context, state) {
-          return SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  if (page == 0) ...[
-                    Stack(
-                      children: [
-                        Image.asset('assets/images/authphoto.png'),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            IconButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                icon: Icon(
-                                  Icons.close,
-                                  color: Colors.black,
-                                  weight: 40,
-                                  size: 35,
-                                )),
-                            const SizedBox(height: 20),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 50),
-                              child: const Text(
-                                  'Join the Network, Deliver Fashion and Earn Rewards',
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.bold)),
-                            )
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            hintText: 'First Name',
-                            controller: fnameController,
-                            validator: (value) => value!.isEmpty
-                                ? 'Please enter your first name'
-                                : null,
+          return ModalProgressHUD(
+            inAsyncCall: state.isLoading,
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    if (page == 0) ...[
+                      Stack(
+                        children: [
+                          Image.asset('assets/images/authphoto.png'),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              IconButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  icon: Icon(
+                                    Icons.close,
+                                    color: Colors.black,
+                                    weight: 40,
+                                    size: 35,
+                                  )),
+                              const SizedBox(height: 20),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 50),
+                                child: const Text(
+                                    'Join the Network, Deliver Fashion and Earn Rewards',
+                                    style: TextStyle(
+                                        fontSize: 25,
+                                        fontWeight: FontWeight.bold)),
+                              )
+                            ],
                           ),
-                        ),
-                        Expanded(
-                          child: CustomTextField(
-                            hintText: 'Last Name',
-                            controller: lnameController,
-                            validator: (value) => value!.isEmpty
-                                ? 'Please enter your last name'
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    CustomTextField(
-                      hintText: 'Email',
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: ValidationHelper.validateEmail,
-                    ),
-                    const SizedBox(height: 10),
-                    CustomTextField(
-                      hintText: 'Phone Number',
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      validator: ValidationHelper.validatePakistanPhoneNumber,
-                    ),
-                    const SizedBox(height: 10),
-                    CustomTextField(
-                      hintText: 'Password',
-                      controller: passwordController,
-                      obscureText: true,
-                      keyboardType: TextInputType.visiblePassword,
-                      validator: ValidationHelper.validatePassword,
-                    ),
-                    const SizedBox(height: 10),
-                    CustomTextField(
-                      hintText: 'Confirm Password',
-                      controller: confirmPasswordController,
-                      obscureText: true,
-                      keyboardType: TextInputType.visiblePassword,
-                      validator: (value) {
-                        if (value!.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: 80,
-                    )
-                  ] else
-                    ...[
-                      Text(
-                        'Upload Your CNIC',
-                        style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600),
-                      ),
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 27, vertical: 8),
-                        child: Text(
-                          'Please upload a clear picture of your CNIC for verification. Ensure all details are visiblle',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade600),
-                          textAlign: TextAlign.center,
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 20),
-                      UploadCard(
-                        title: 'Upload CNIC',
-                        subtitle: 'Tap to upload your CNIC',
-                        image: image,
-                        onUpload: () {
-                          pickImage();
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CustomTextField(
+                              hintText: 'First Name',
+                              controller: fnameController,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Please enter your first name'
+                                  : null,
+                            ),
+                          ),
+                          Expanded(
+                            child: CustomTextField(
+                              hintText: 'Last Name',
+                              controller: lnameController,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Please enter your last name'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        hintText: 'Email',
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: ValidationHelper.validateEmail,
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        hintText: 'Phone Number',
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        validator: ValidationHelper.validatePakistanPhoneNumber,
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        hintText: 'Password',
+                        controller: passwordController,
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        validator: ValidationHelper.validatePassword,
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        hintText: 'Confirm Password',
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
                         },
-                        onClose: () => cancelImage(),
+                      ),
+                      SizedBox(
+                        height: 80,
                       )
-                    ]
-                ],
+                    ] else
+                      ...[
+                        Text(
+                          'Upload Your CNIC',
+                          style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600),
+                        ),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 27, vertical: 8),
+                          child: Text(
+                            'Please upload a clear picture of your CNIC for verification. Ensure all details are visiblle',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade600),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        UploadCard(
+                          title: 'Upload CNIC',
+                          subtitle: 'Tap to upload your CNIC',
+                          image: image,
+                          onUpload: () {
+                            pickImage();
+                          },
+                          onClose: () => cancelImage(),
+                        )
+                      ]
+                  ],
+                ),
               ),
             ),
           );

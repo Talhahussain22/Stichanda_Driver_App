@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stichanda_driver/data/models/order_model.dart';
 import 'package:stichanda_driver/data/models/profile_model.dart';
 import 'package:stichanda_driver/helper/firebase_error_handler.dart';
 // all firebase logic here
@@ -124,11 +123,18 @@ class AuthRepo{
     return null;
   }
 
+  Stream<ProfileModel?> driverProfileStream(String uid){
+    return _firestore.collection('driver').doc(uid).snapshots().map((snapshot){
+      if(!snapshot.exists) return null;
+      return ProfileModel.fromJson(snapshot.data() as Map<String,dynamic>);
+    });
+  }
 
   Future<bool> updateActiveStatus(int status){
     String uid=_instance.currentUser!.uid;
     return _firestore.collection('driver').doc(uid).update({
       'availiability_status':status,
+      'updated_at': FieldValue.serverTimestamp(),
     }).then((value) => true).catchError((error){
       return false;
     });
