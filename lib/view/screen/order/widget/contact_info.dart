@@ -29,11 +29,11 @@ class DriverContactInfo extends StatelessWidget {
                 style:
                 const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
-            Text(name),
-            Text(address, style: const TextStyle(color: Colors.black54)),
+            Text(name.isEmpty ? '-' : name),
+            Text(address.isEmpty ? '-' : address, style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () => _callNumber(phone),
+              onPressed: phone.isEmpty ? null : () => _callNumber(phone),
               icon: const Icon(Icons.call),
               label: const Text('Call'),
             ),
@@ -45,12 +45,14 @@ class DriverContactInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tailor = order.tailor;
+    final customer = order.customer;
     return Column(
       children: [
-        _buildContactCard('Pickup (Tailor)', "order.tailorName",
-            "order.tailorPhone", "order.tailorAddress"),
-        _buildContactCard('Drop-off (Customer)', "order.customerName",
-            "order.customerPhone", "order.customerAddress"),
+        _buildContactCard('Pickup (Tailor)', tailor?.name ?? '-',
+            tailor?.phone ?? '', tailor?.address.location ?? '-'),
+        _buildContactCard('Drop-off (Customer)', customer?.name ?? '-',
+            customer?.phone ?? '', customer?.address.location ?? '-'),
       ],
     );
   }

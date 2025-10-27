@@ -1,8 +1,8 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../../../data/models/order_model.dart';
+import '../../../base/order_shimmer.dart';
 
 
 // for now location services is place here and also this page is getting location of driver we will shift this to homepage after some time and locator service to repository
@@ -59,7 +59,7 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
       }
 
       Position pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       final pickupLat = double.tryParse(widget.order.pickupLocation.latitude) ?? 0.0;
@@ -117,9 +117,8 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    print('Building OrderRequestWidget for Order ID: ${order.orderId} with status: ${order.status}');
 
-    return  // hide non-pending orders
+    return
         Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -128,8 +127,7 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _loadingLocation
-        //replace this with shimmer card later or only part where distance is being calculate
-            ? const Center(child: CircularProgressIndicator())
+            ? const OrderShimmer(isEnabled: true)
             : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -137,11 +135,28 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Order #${order.orderId}",
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                if(order.paymentStatus=='unpaid')
+                  Row(
+                    children: [
+                      Icon(Icons.payment,
+                          size: 18,
+                          color:
+                          order.paymentStatus.toLowerCase() == 'paid'
+                              ? Colors.green
+                              : Colors.red),
+                      const SizedBox(width: 6),
+
+                      Text(
+                        "Amount: ${order.totalPrice.toStringAsFixed(2)} PKR",
+                        style: TextStyle(
+                          color: order.paymentStatus.toLowerCase() == 'paid'
+                              ? Colors.green[800]
+                              : Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 Chip(
                   label: Text(
                     order.paymentStatus.toUpperCase(),
@@ -155,32 +170,8 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
 
-            // Payment details
-            if(order.paymentStatus=='unpaid')
-            Row(
-              children: [
-                Icon(Icons.payment,
-                    size: 18,
-                    color:
-                    order.paymentStatus.toLowerCase() == 'paid'
-                        ? Colors.green
-                        : Colors.red),
-                const SizedBox(width: 6),
 
-                Text(
-                  "Amount: ${order.totalPrice.toStringAsFixed(2)} PKR",
-                  style: TextStyle(
-                    color: order.paymentStatus.toLowerCase() == 'paid'
-                        ? Colors.green[800]
-                        : Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
 
             // Pickup
             _buildLocationRow(

@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stichanda_driver/controller/OrderCubit.dart';
 import 'package:stichanda_driver/controller/authCubit.dart';
+import 'package:stichanda_driver/controller/dashboard_index_cubit.dart';
 import 'package:stichanda_driver/data/repository/auth_repo.dart';
 import 'package:stichanda_driver/data/repository/order_repo.dart';
+import 'package:stichanda_driver/modules/chat/cubit/chat_cubit.dart';
+import 'package:stichanda_driver/modules/chat/repository/chat_repository.dart';
 import 'package:stichanda_driver/services/location_service.dart';
 import 'package:stichanda_driver/theme/light_theme.dart';
 import 'package:stichanda_driver/view/screen/splash/splash_screen.dart';
@@ -61,8 +64,14 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         BlocProvider(
+          create: (_) => ChatCubit(ChatRepository()),
+        ),
+        BlocProvider(
             create: (context) =>
-                OrderCubit(orderRepository: DriverOrderRepository()))
+                OrderCubit(orderRepository: DriverOrderRepository())),
+        BlocProvider(
+          create: (_) => DashboardIndexCubit(),
+        ),
       ],
       child: Builder(
         builder: (context) {

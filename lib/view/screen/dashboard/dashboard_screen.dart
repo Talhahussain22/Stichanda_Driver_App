@@ -5,6 +5,8 @@ import 'package:stichanda_driver/controller/authCubit.dart';
 import 'package:stichanda_driver/view/screen/order/order_screen.dart';
 import 'package:stichanda_driver/view/screen/profile/profile_screen.dart';
 import 'package:stichanda_driver/view/screen/request/order_request.dart';
+import 'package:stichanda_driver/modules/chat/screens/conversations_screen.dart';
+import 'package:stichanda_driver/controller/dashboard_index_cubit.dart';
 
 import '../home/home_screen.dart';
 
@@ -23,10 +25,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _screens=[
     HomeScreenUI(),
     OrderRequestScreen(),
+    ConversationsScreen(),
     const OrderScreen(),
     const ProfileScreen()
   ];
-  int _selectedIndex=0;
 
   Future<void> _onNavTap(int index) async {
     if(index==1){
@@ -96,24 +98,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       }
     }
-    setState(() { _selectedIndex=index; });
+    context.read<DashboardIndexCubit>().setIndex(index);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
-        onTap: (i){ _onNavTap(i); },
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home,color: _selectedIndex==0?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt,color: _selectedIndex==1?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag,color: _selectedIndex==2?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Order History'),
-          BottomNavigationBarItem(icon: Icon(Icons.person,color: _selectedIndex==3? Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Profile'),
-        ],
-      ),
-      body: _screens[_selectedIndex],
+    return BlocBuilder<DashboardIndexCubit, int>(
+      builder: (context, selectedIndex) {
+        return Scaffold(
+          bottomNavigationBar: BottomNavigationBar(
+            onTap: (i){ _onNavTap(i); },
+            type: BottomNavigationBarType.fixed,
+            currentIndex: selectedIndex,
+            items: [
+              BottomNavigationBarItem(icon: Icon(Icons.home,color: selectedIndex==0?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.list_alt,color: selectedIndex==1?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Orders'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat,color: selectedIndex==2?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Chats'),
+              BottomNavigationBarItem(icon: Icon(Icons.shopping_bag,color: selectedIndex==3?Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Order History'),
+              BottomNavigationBarItem(icon: Icon(Icons.person,color: selectedIndex==4? Theme.of(context).primaryColor:Theme.of(context).hintColor,),label: 'Profile'),
+            ],
+          ),
+          body: _screens[selectedIndex],
+        );
+      },
     );
   }
 }

@@ -2,19 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:stichanda_driver/data/models/order_model.dart';
 import 'package:stichanda_driver/view/base/order_widget.dart';
 
 import 'package:stichanda_driver/view/screen/home/widget/count_card.dart';
 import 'package:stichanda_driver/view/screen/home/widget/homepage_appbar.dart';
-import 'package:stichanda_driver/view/screen/home/widget/online_switch.dart';
 
 import '../../../controller/OrderCubit.dart';
 import '../../../utils/dimension.dart';
 import '../../../utils/style.dart';
 import '../../base/order_shimmer.dart';
 import '../../base/title_widget.dart';
-import '../order/running_order.dart';
 
 class HomeScreenUI extends StatefulWidget {
   // Data for the screen
@@ -29,8 +26,9 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 
   @override
   void initState() {
-    context.read<OrderCubit>().fetchCurrentOrder();
     super.initState();
+    // subscribe to current order in realtime
+    context.read<OrderCubit>().subscribeToCurrentOrder();
   }
   @override
   Widget build(BuildContext context) {

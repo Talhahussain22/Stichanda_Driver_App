@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:stichanda_driver/view/screen/order/order_details.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../data/models/order_model.dart';
+import '../screen/order/order_details.dart';
 
 /// Simple data model to represent an order.
 /// You can replace or extend this with your real data class.
@@ -20,6 +20,8 @@ class OrderWidget extends StatelessWidget {
     this.onDetailsPressed,
   });
 
+
+
   @override
   Widget build(BuildContext context) {
     final bool isCOD = order.paymentMethod == 'cash_on_delivery';
@@ -34,7 +36,7 @@ class OrderWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withOpacity(0.1),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -110,7 +112,7 @@ class OrderWidget extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onDetailsPressed ??
                           () {
-                        // Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId!)));
+                        Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId!)));
                       },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),

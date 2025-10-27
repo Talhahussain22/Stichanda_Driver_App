@@ -1,5 +1,3 @@
-import 'order_item_details.dart';
-
 class OrderModel {
   final String orderId;
   final String customerId;
@@ -15,7 +13,9 @@ class OrderModel {
   final String createdAt;
   final String updatedAt;
 
-  final List<OrderDetailModel>? orderDetails;
+
+  final CustomerInfo? customer;
+  final TailorInfo? tailor;
 
   OrderModel({
     required this.orderId,
@@ -31,7 +31,9 @@ class OrderModel {
     this.deliveryDate,
     required this.createdAt,
     required this.updatedAt,
-    this.orderDetails,
+    // this.orderDetails,
+    this.customer,
+    this.tailor,
   });
 
 
@@ -59,7 +61,13 @@ class OrderModel {
       deliveryDate: json['delivery_date']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
-
+      // Embedded details are filled later in repository
+      customer: (json['customer'] is Map<String, dynamic>)
+          ? CustomerInfo.fromJson(json['customer'])
+          : null,
+      tailor: (json['tailor'] is Map<String, dynamic>)
+          ? TailorInfo.fromJson(json['tailor'])
+          : null,
     );
   }
 
@@ -79,6 +87,8 @@ class OrderModel {
       'delivery_date': deliveryDate,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      if (customer != null) 'customer': customer!.toJson(),
+      if (tailor != null) 'tailor': tailor!.toJson(),
     };
   }
 
@@ -97,7 +107,9 @@ class OrderModel {
     String? deliveryDate,
     String? createdAt,
     String? updatedAt,
-    List<OrderDetailModel>? orderDetails,
+    // List<OrderDetailModel>? orderDetails,
+    CustomerInfo? customer,
+    TailorInfo? tailor,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -113,16 +125,106 @@ class OrderModel {
       deliveryDate: deliveryDate ?? this.deliveryDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      orderDetails: orderDetails ?? this.orderDetails,
+      // orderDetails: orderDetails ?? this.orderDetails,
+      customer: customer ?? this.customer,
+      tailor: tailor ?? this.tailor,
     );
   }
 
   @override
   String toString() {
-    return 'OrderModel(orderId: $orderId, totalPrice: $totalPrice, status: $status, items: ${orderDetails?.length ?? 0})';
+    return 'OrderModel(orderId: $orderId, totalPrice: $totalPrice, status: $status, customer: \\${customer?.name ?? ''}, tailor: \\${tailor?.name ?? ''})';
   }
 }
 
+class CustomerInfo {
+  final String id;
+  final String name;
+  final String phone;
+  final Address address;
+
+  CustomerInfo({
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.address,
+  });
+
+  factory CustomerInfo.fromJson(Map<String, dynamic> json) {
+    Address _extractAddress(Map<String, dynamic> j) {
+      final addr = j['address'];
+      if (addr is Map<String, dynamic>) {
+        return Address.fromJson(addr);
+      }
+      // Root-level fallback keys
+      if (j.containsKey('full_address') || j.containsKey('latitude') || j.containsKey('longitude')) {
+        return Address.fromJson(j);
+      }
+      if (addr is String) {
+        return Address(location: addr, latitude: '', longitude: '');
+      }
+      return Address(location: '', latitude: '', longitude: '');
+    }
+
+    return CustomerInfo(
+      id: json['customer_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? json['full_name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? json['phone_number']?.toString() ?? '',
+      address: _extractAddress(json),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'address': address.toJson(),
+  };
+}
+
+class TailorInfo {
+  final String id;
+  final String name;
+  final String phone;
+  final Address address;
+
+  TailorInfo({
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.address,
+  });
+
+  factory TailorInfo.fromJson(Map<String, dynamic> json) {
+    Address _extractAddress(Map<String, dynamic> j) {
+      final addr = j['address'];
+      if (addr is Map<String, dynamic>) {
+        return Address.fromJson(addr);
+      }
+      if (j.containsKey('full_address') || j.containsKey('latitude') || j.containsKey('longitude')) {
+        return Address.fromJson(j);
+      }
+      if (addr is String) {
+        return Address(location: addr, latitude: '', longitude: '');
+      }
+      return Address(location: '', latitude: '', longitude: '');
+    }
+
+    return TailorInfo(
+      id: json['tailor_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? json['shop_name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? json['phone_number']?.toString() ?? '',
+      address: _extractAddress(json),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'address': address.toJson(),
+  };
+}
 
 class Address {
   final String location;
@@ -136,10 +238,14 @@ class Address {
   });
 
   factory Address.fromJson(Map<String, dynamic> json) {
+    // Accept different key variants and numeric/string values
+    dynamic lat = json['latitude'] ?? json['lat'];
+    dynamic lng = json['longitude'] ?? json['lng'] ?? json['Longitude'];
+    String toS(dynamic v) => v == null ? '' : v.toString();
     return Address(
-      location: json['full_address'] ?? '',
-      latitude: json['latitude']?.toString() ?? '',
-      longitude: json['longitude']?.toString() ?? '',
+      location: json['full_address']?.toString() ?? json['address']?.toString() ?? '',
+      latitude: toS(lat),
+      longitude: toS(lng),
     );
   }
 
