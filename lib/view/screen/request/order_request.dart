@@ -4,6 +4,7 @@ import 'package:stichanda_driver/controller/dashboard_index_cubit.dart';
 import 'package:stichanda_driver/view/screen/request/widget/order_request_widget.dart';
 
 import '../../../controller/OrderCubit.dart';
+import '../../../controller/authCubit.dart';
 
 class OrderRequestScreen extends StatefulWidget {
   const OrderRequestScreen({super.key});
@@ -18,23 +19,19 @@ class _OrderRequestScreenState extends State<OrderRequestScreen> {
   @override
   void initState() {
     super.initState();
-    // Subscribe after first frame to avoid doing ancestor lookups during initState
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Ensure the widget is still mounted when subscribing
       if (!mounted) return;
-      context.read<OrderCubit>().subscribeToUnassignedOrders();
+      final profile = context.read<AuthCubit>().state.profile;
+      final lat = profile?.currentLocation.latitude;
+      final lng = profile?.currentLocation.longitude;
+      context.read<OrderCubit>().subscribeToUnassignedOrders(
+            currentLat: lat,
+            currentLng: lng,
+          );
     });
   }
 
-  @override
-  void dispose() {
-    // If your OrderCubit has an unsubscribe method, call it here.
-    // Example:
-    // try {
-    //   context.read<OrderCubit>().unsubscribeFromUnassignedOrders();
-    // } catch (_) {}
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {

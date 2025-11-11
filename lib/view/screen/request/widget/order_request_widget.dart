@@ -62,14 +62,17 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
-      final pickupLat = double.tryParse(widget.order.pickupLocation.latitude) ?? 0.0;
-      final pickupLng = double.tryParse(widget.order.pickupLocation.longitude) ?? 0.0;
-      final dropoffLat = double.tryParse(widget.order.dropoffLocation.latitude) ?? 0.0;
-      final dropoffLng = double.tryParse(widget.order.dropoffLocation.longitude) ?? 0.0;
+      // Use appropriate pickup/dropoff based on order status
+      final pickupLocation = widget.order.currentPickupLocation;
+      final dropoffLocation = widget.order.currentDropoffLocation;
+
+      final pickupLat = double.tryParse(pickupLocation.latitude) ?? 0.0;
+      final pickupLng = double.tryParse(pickupLocation.longitude) ?? 0.0;
+      final dropoffLat = double.tryParse(dropoffLocation.latitude) ?? 0.0;
+      final dropoffLng = double.tryParse(dropoffLocation.longitude) ?? 0.0;
 
       final double driverToPickup =
       _calculateDistance(pos.latitude, pos.longitude, pickupLat, pickupLng);
-
 
 
       final double pickupToDropoff =
@@ -118,6 +121,13 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
   Widget build(BuildContext context) {
     final order = widget.order;
 
+    // Determine labels based on order status
+    final bool isReturnTrip = order.status == 6; // Status 6 = Tailor to Customer
+    final pickupLabel = isReturnTrip ? "Pickup from Tailor" : "Pickup from Customer";
+    final dropoffLabel = isReturnTrip ? "Deliver to Customer" : "Deliver to Tailor";
+    final pickupLocation = order.currentPickupLocation;
+    final dropoffLocation = order.currentDropoffLocation;
+
     return
         Card(
       elevation: 3,
@@ -131,58 +141,42 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
             : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header (payment chip removed)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if(order.paymentStatus=='unpaid')
-                  Row(
-                    children: [
-                      Icon(Icons.payment,
-                          size: 18,
-                          color:
-                          order.paymentStatus.toLowerCase() == 'paid'
-                              ? Colors.green
-                              : Colors.red),
-                      const SizedBox(width: 6),
-
-                      Text(
-                        "Amount: ${order.totalPrice.toStringAsFixed(2)} PKR",
-                        style: TextStyle(
-                          color: order.paymentStatus.toLowerCase() == 'paid'
-                              ? Colors.green[800]
-                              : Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
+                Row(
+                  children: [
+                    Icon(
+                      isReturnTrip ? Icons.keyboard_return : Icons.local_shipping,
+                      size: 18,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isReturnTrip ? "Return Delivery" : "New Delivery",
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                Chip(
-                  label: Text(
-                    order.paymentStatus.toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 12),
-                  ),
-                  backgroundColor:
-                  order.paymentStatus.toLowerCase() == 'paid'
-                      ? Colors.green
-                      : Colors.red,
+                    ),
+                  ],
                 ),
               ],
             ),
 
-
+            const SizedBox(height: 12),
 
             // Pickup
             _buildLocationRow(
               icon: Icons.store,
-              label: "Pickup Location",
-              address: order.pickupLocation.location,
+              label: pickupLabel,
+              address: pickupLocation.location,
               distanceText:
               "📍 You are ${_distanceToPickup?.toStringAsFixed(2)} km away",
               onViewMap: () => _openGoogleMaps(
-                  double.tryParse(order.pickupLocation.latitude) ?? 0.0,
-                  double.tryParse(order.pickupLocation.longitude) ?? 0.0,
+                  double.tryParse(pickupLocation.latitude) ?? 0.0,
+                  double.tryParse(pickupLocation.longitude) ?? 0.0,
                   "Pickup"),
             ),
             const SizedBox(height: 8),
@@ -190,24 +184,20 @@ class _OrderRequestWidgetState extends State<OrderRequestWidget> {
             // Dropoff
             _buildLocationRow(
               icon: Icons.location_pin,
-              label: "Dropoff Location",
-              address: order.dropoffLocation.location,
+              label: dropoffLabel,
+              address: dropoffLocation.location,
               distanceText:
-              "🚚 Customer is ${_distancePickupToDropoff?.toStringAsFixed(2)} km from pickup",
+              "🚚 ${_distancePickupToDropoff?.toStringAsFixed(2)} km from pickup",
               onViewMap: () => _openGoogleMaps(
-                  double.tryParse(order.dropoffLocation.latitude) ?? 0.0,
-                  double.tryParse(order.dropoffLocation.longitude) ?? 0.0,
+                  double.tryParse(dropoffLocation.latitude) ?? 0.0,
+                  double.tryParse(dropoffLocation.longitude) ?? 0.0,
                   "Dropoff"),
             ),
+
             const Divider(height: 24),
-
-
-
 
             // Buttons
             Row(children: [
-
-
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: widget.onAccept,

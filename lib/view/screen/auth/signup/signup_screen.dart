@@ -101,6 +101,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage!)),
             );
+            context.read<AuthCubit>().clearError();
           } else if (state.isAuthenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Sign up successful!')),
@@ -265,6 +266,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       fname: fnameController.text.trim(),
                       lname: lnameController.text.trim(),
                       phone: phoneController.text.trim(),
+                      cnicImage: image,
                     );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(

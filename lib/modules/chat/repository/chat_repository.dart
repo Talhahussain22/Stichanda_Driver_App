@@ -34,6 +34,7 @@ class ChatRepository {
         .orderBy('last_updated', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map((d) => Conversation.fromJson(d.data(), d.id)).toList());
+
   }
 
   Stream<List<ChatMessage>> messageStream(String conversationId, {int limit = 50}) {

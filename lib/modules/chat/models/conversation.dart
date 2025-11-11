@@ -14,6 +14,7 @@ class Conversation {
   });
 
   factory Conversation.fromJson(Map<String, dynamic> json, String id) {
+
     return Conversation(
       id: id,
       participants: (json['participants'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],

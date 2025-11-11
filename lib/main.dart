@@ -12,23 +12,24 @@ import 'package:stichanda_driver/modules/chat/repository/chat_repository.dart';
 import 'package:stichanda_driver/services/location_service.dart';
 import 'package:stichanda_driver/theme/light_theme.dart';
 import 'package:stichanda_driver/view/screen/splash/splash_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
 
-class _LifecycleHandler extends WidgetsBindingObserver {
-  final AuthCubit authCubit;
-  _LifecycleHandler(this.authCubit);
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // When app goes to background or detached, set availability offline
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached ||
-        state == AppLifecycleState.inactive) {
-      authCubit.updateActiveStatus(0);
-    }
-  }
-}
+// class _LifecycleHandler extends WidgetsBindingObserver {
+//   final AuthCubit authCubit;
+//   _LifecycleHandler(this.authCubit);
+//
+//   @override
+//   void didChangeAppLifecycleState(AppLifecycleState state) {
+//     // When app goes to background or detached, set availability offline
+//     if (state == AppLifecycleState.paused ||
+//         state == AppLifecycleState.detached ||
+//         state == AppLifecycleState.inactive) {
+//       authCubit.updateActiveStatus(0);
+//     }
+//   }
+// }
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,10 @@ void main() async{
   );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await Supabase.initialize(
+    url: 'https://rzkrwgexdqksrudynxvp.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J3Z2V4ZHFrc3J1ZHlueHZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MTUxNjAsImV4cCI6MjA3NzI5MTE2MH0.bQytv6utSf9ArstDr6nu1K5L66XuFj5vTBYiWSR-xRw',
   );
 
   runApp(const MyApp());
@@ -51,7 +56,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  _LifecycleHandler? _lifecycleHandler;
+  // _LifecycleHandler? _lifecycleHandler;
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +81,8 @@ class _MyAppState extends State<MyApp> {
       child: Builder(
         builder: (context) {
           // Attach lifecycle observer once AuthCubit is available
-          _lifecycleHandler ??= _LifecycleHandler(context.read<AuthCubit>());
-          WidgetsBinding.instance.addObserver(_lifecycleHandler!);
+          // _lifecycleHandler ??= _LifecycleHandler(context.read<AuthCubit>());
+          // WidgetsBinding.instance.addObserver(_lifecycleHandler!);
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Flutter Demo',
@@ -89,11 +94,11 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  @override
-  void dispose() {
-    if (_lifecycleHandler != null) {
-      WidgetsBinding.instance.removeObserver(_lifecycleHandler!);
-    }
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     if (_lifecycleHandler != null) {
+//       WidgetsBinding.instance.removeObserver(_lifecycleHandler!);
+//     }
+//     super.dispose();
+//   }
 }

@@ -5,7 +5,8 @@ class ProfileModel {
   final String name;
   final String email;
   final String phone;
-  final String imagePath;
+  final String imagePath; // legacy/unused
+  final String profileImagePath;
   final String cnicImagePath;
   final int availabilityStatus;
   final int verificationStatus;
@@ -21,6 +22,7 @@ class ProfileModel {
     required this.email,
     required this.phone,
     required this.imagePath,
+    required this.profileImagePath,
     required this.cnicImagePath,
     required this.availabilityStatus,
     required this.verificationStatus,
@@ -43,7 +45,8 @@ class ProfileModel {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
-      imagePath: json['image_path'] ?? '',
+      imagePath: '', // legacy removed
+      profileImagePath: (json['profile_image_path'] ?? '').toString(),
       cnicImagePath: json['cnic_image_path'] ?? '',
       availabilityStatus: (json['availiability_status'] is num)
           ? (json['availiability_status'] as num).toInt()
@@ -68,15 +71,13 @@ class ProfileModel {
     );
   }
 
-
-
-
   ProfileModel copyWith({
     String? driverId,
     String? name,
     String? email,
     String? phone,
     String? imagePath,
+    String? profileImagePath,
     String? cnicImagePath,
     bool? isVerified,
     int? availabilityStatus,
@@ -93,6 +94,7 @@ class ProfileModel {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       imagePath: imagePath ?? this.imagePath,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       cnicImagePath: cnicImagePath ?? this.cnicImagePath,
       availabilityStatus: availabilityStatus ?? this.availabilityStatus,
       verificationStatus: verificationStatus ?? this.verificationStatus,
@@ -108,10 +110,9 @@ class ProfileModel {
   String toString() {
     return 'ProfileModel(driverId: $driverId, name: $name, email: $email, '
         ' availability: $availabilityStatus, '
-        'review: $review, location: $currentLocation)';
+        'review: $review, profileImagePath: $profileImagePath, location: $currentLocation)';
   }
 }
-
 
 class GeoLocation {
   final double latitude;

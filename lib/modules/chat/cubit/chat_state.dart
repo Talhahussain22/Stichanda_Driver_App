@@ -18,8 +18,14 @@ class MessagesLoaded extends ChatState {
   MessagesLoaded(this.messages);
 }
 
+class ChatPeerLoaded extends ChatState {
+  final String uid;
+  final String name;
+  final String? imageUrl;
+  ChatPeerLoaded({required this.uid, required this.name, this.imageUrl});
+}
+
 class ChatError extends ChatState {
   final String message;
   ChatError(this.message);
 }
-

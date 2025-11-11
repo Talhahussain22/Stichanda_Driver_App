@@ -7,7 +7,6 @@ import 'package:stichanda_driver/controller/OrderCubit.dart';
 import 'package:stichanda_driver/modules/chat/cubit/chat_cubit.dart';
 import 'package:stichanda_driver/modules/chat/screens/chat_screen.dart';
 import 'package:stichanda_driver/data/models/order_model.dart';
-import 'package:stichanda_driver/data/repository/order_repo.dart';
 
 class DriverOrderDetailsScreen extends StatefulWidget {
   final String orderId;
@@ -29,30 +28,34 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
     final orderCubit = context.read<OrderCubit>();
     final next = _nextStatus(order.status);
     if (next == null) return;
-    if (next == 'completed') {
-      await orderCubit!.completeSelectedOrder();
+
+    // Check if this is a completion status (3, 9, or 10)
+    if (next == 3 || next == 9 || next == 10) {
+      await orderCubit.completeSelectedOrder(next);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Order completed')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order marked as ${order.copyWith(status: next).statusLabel}'))
+      );
       Navigator.of(context).pop(true);
     } else {
-      orderCubit!.updateOrderStatus(order.orderId, next);
+      orderCubit.updateOrderStatus(order.orderId, next);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Order marked as $next')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order marked as ${order.copyWith(status: next).statusLabel}'))
+      );
     }
   }
 
-  String? _nextStatus(String s) {
-    switch (s.toLowerCase()) {
-      case 'assigned':
-        return 'picked_up';
-      case 'picked_up':
-        return 'completed';
-      default:
-        return '';
+  int? _nextStatus(int currentStatus) {
+    // Status progression (driver-side only):
+    // 0 → 1 → 2 → 3 (Customer to Tailor delivery; 3 is completion by driver)
+    // 6 → 7 → 8 → 9 (Tailor to Customer delivery; 9 is completion by driver)
+    switch (currentStatus) {
+      case 1: return 2; // Assigned → Picked up from Customer
+      case 2: return 3; // Picked up → Delivered to Tailor (driver completes first leg)
+      case 7: return 8; // Assigned to Rider → Picked up from Tailor
+      case 8: return 9; // Picked up from Tailor → Delivered to Customer (driver completes second leg)
+      default: return null; // 3 and 9 (and others) have no driver action
     }
   }
 
@@ -122,24 +125,22 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.payments, size: 18),
-              const SizedBox(width: 6),
-              Text('Payment: ${o.paymentMethod} • ${o.paymentStatus}'),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.attach_money, size: 18),
-              const SizedBox(width: 6),
-              Text('Total: ${o.totalPrice.toStringAsFixed(2)}'),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              o.statusLabel,
+              style: TextStyle(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -162,47 +163,59 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
     );
   }
 
-  Widget _customerCard(OrderModel o,bool isTailor) {
+  Widget _personCard(OrderModel o, {required bool isSender}) {
 
+    final person = isSender ? o.sender : o.receiver;
+    final addr = isSender ? o.currentPickupLocation : o.currentDropoffLocation;
+    final personId = isSender
+        ? (o.status >= 0 && o.status <= 3 ? o.customerId : o.tailorId ?? '')
+        : (o.status >= 0 && o.status <= 3 ? o.tailorId ?? '' : o.customerId);
 
-    //in fututre replace cusotmer and tailor with sender and reciver and in address
-    // also check order_status to show pickup or dropoff location , selecting sender and reicver etc
-    final addr =isTailor?o.dropoffLocation:o.pickupLocation;
-    final lat = double.tryParse(addr?.latitude ?? '');
-    final lng = double.tryParse(addr?.longitude ?? '');
+    final lat = double.tryParse(addr.latitude);
+    final lng = double.tryParse(addr.longitude);
 
     return _sectionCard(
       trailing:
           (lat != null && lng != null)
               ? IconButton(
                 tooltip: 'Directions',
-                icon: Icon(Icons.directions,color: Theme.of(context).primaryColor,),
+                icon: Icon(Icons.directions, color: Theme.of(context).primaryColor),
                 onPressed: () => _openDirections(lat, lng),
               )
               : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Text(
-            isTailor?'Tailor':'Customer',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Icon(
+                isSender ? Icons.person_outline : Icons.location_on,
+                color: Theme.of(context).primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isSender ? 'Pickup From' : 'Deliver To',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           _contactRow(
             icon: Icons.person,
             label: 'Name',
-            value: isTailor? o.tailor?.name ?? '-':o.customer?.name ?? '-',
+            value: person?.name ?? '-',
           ),
           _contactRow(
             icon: Icons.location_on,
             label: 'Address',
-            value: addr?.location ?? '-',
+            value: addr.location,
           ),
           _contactRow(
             icon: Icons.phone,
             label: 'Phone',
-            value: isTailor? o.tailor?.phone ?? '-':o.customer?.phone ?? '',
-            onTap: () => _call(isTailor? o.tailor?.phone ?? '-':o.customer?.phone ?? ''),
+            value: person?.phone ?? '-',
+            onTap: () => _call(person?.phone ?? ''),
           ),
           const SizedBox(height: 8),
           Row(
@@ -212,9 +225,9 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
                   icon: const Icon(Icons.call),
                   label: const Text('Call'),
                   onPressed:
-                      (isTailor? o.tailor?.phone ?? '-':o.customer?.phone ?? '').isEmpty
+                      (person?.phone ?? '').isEmpty
                           ? null
-                          : () => _call(isTailor? o.tailor?.phone ?? '-':o.customer?.phone ?? ''),
+                          : () => _call(person?.phone ?? ''),
                 ),
               ),
               const SizedBox(width: 12),
@@ -222,7 +235,7 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.chat_bubble_outline),
                   label: const Text('Chat'),
-                  onPressed: () => _startChat(o.customerId),
+                  onPressed: personId.isEmpty ? null : () => _startChat(personId),
                 ),
               ),
             ],
@@ -265,42 +278,52 @@ class _DriverOrderDetailsScreenState extends State<DriverOrderDetailsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-
                               _basicInfo(selected),
-                              _customerCard(selected,false),
-                              _customerCard(selected,true),
+                              _personCard(selected, isSender: true),
+                              _personCard(selected, isSender: false),
                             ],
                           ),
                         ),
                       ),
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed:
-                                  canUpdate
-                                      ? () => _onAdvanceStatus(selected)
-                                      : null,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
+                      if (canUpdate)
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => _onAdvanceStatus(selected),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                _nextStatus(selected.status) == 'completed'
-                                    ? 'Complete Order'
-                                    : 'Mark as ${_nextStatus(selected.status)!.replaceAll('_', ' ').toUpperCase()}',
+                                child: Text(
+                                  _getButtonText(selected.status),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
         );
       },
     );
+  }
+
+  String _getButtonText(int status) {
+    final next = _nextStatus(status);
+    if (status == 9) return 'Waiting for customer confirmation';
+    if (status == 3) return 'Completed';
+    if (next == null) return 'No Action Available';
+
+    switch (next) {
+      case 2: return 'Mark as Picked Up';
+      case 3: return 'Complete Delivery to Tailor';
+      case 8: return 'Mark as Picked Up from Tailor';
+      case 9: return 'Complete Delivery to Customer';
+      default: return 'Update Status';
+    }
   }
 }

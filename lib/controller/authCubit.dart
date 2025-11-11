@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:stichanda_driver/data/models/profile_model.dart';
 import 'package:stichanda_driver/data/repository/auth_repo.dart';
 import 'package:stichanda_driver/services/location_service.dart';
@@ -92,6 +93,7 @@ class AuthCubit extends Cubit<AuthState> {
         isAuthenticated: true,
         profile: profile,
         isLoading: false,
+        clearErrorMessage: true,
       ));
     });
   }
@@ -102,6 +104,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String fname,
     required String lname,
     required String phone,
+    required XFile? cnicImage,
   }) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
@@ -111,11 +114,13 @@ class AuthCubit extends Cubit<AuthState> {
       fname,
       lname,
       phone,
+      cnicImage,
     );
 
     if (result.success) {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      _subscribeToProfile(uid);
+      _subscribeToProfile(uid); // ensure state updates from profile stream
+      // We'll stop loading when the stream emits the first profile snapshot
     } else {
       emit(state.copyWith(isLoading: false, errorMessage: result.message));
     }
@@ -168,8 +173,8 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> updateActiveStatus(int newStatus) async {
-    if (FirebaseAuth.instance.currentUser == null) return;
+  Future<bool> updateActiveStatus(int newStatus) async {
+    if (FirebaseAuth.instance.currentUser == null) return false;
     // Snapshot current profile to allow rollback on failure
     final prevProfile = state.profile;
     final prevStatus = prevProfile?.availabilityStatus ?? 0;
@@ -196,15 +201,14 @@ class AuthCubit extends Cubit<AuthState> {
     final success = await _authRepo.updateActiveStatus(newStatus);
 
     if (!success) {
-      // Rollback UI + location service if Firestore write failed
+      // Rollback UI + location service if Firestore write failed, but do NOT set global errorMessage
       if (prevProfile != null) {
         emit(state.copyWith(
           isLoading: false,
           profile: prevProfile,
-          errorMessage: "Failed to update availability status",
         ));
       } else {
-        emit(state.copyWith(isLoading: false, errorMessage: "Failed to update availability status"));
+        emit(state.copyWith(isLoading: false));
       }
 
       try {
@@ -214,9 +218,11 @@ class AuthCubit extends Cubit<AuthState> {
           await _locationService.stop();
         }
       } catch (_) {}
+      return false;
     } else {
-      // Success: Firestore is updated; keep UI and finish loading
-      emit(state.copyWith(isLoading: false));
+      // Success: Firestore is updated; keep UI and finish loading and clear any previous error
+      emit(state.copyWith(isLoading: false, clearErrorMessage: true));
+      return true;
     }
   }
 
@@ -229,6 +235,30 @@ class AuthCubit extends Cubit<AuthState> {
     await _authRepo.signOut();
     await _locationService.stop();
     emit(const AuthState(isAuthenticated: false, profile: null, isLoading: false));
+  }
+
+  Future<void> updateProfile({String? name, String? phone, String? imagePath}) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      final Map<String, dynamic> data = {};
+      if (name != null) data['name'] = name;
+      if (phone != null) data['phone'] = phone;
+      if (imagePath != null) {
+        // write to new dedicated field
+        data['profile_image_path'] = imagePath;
+      }
+      if (data.isEmpty) {
+        emit(state.copyWith(isLoading: false));
+        return;
+      }
+      await _authRepo.updateDriverProfile(data);
+      // Stream subscription will update state.profile automatically
+      emit(state.copyWith(isLoading: false, clearErrorMessage: true));
+    } on FirebaseAuthException catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: FirebaseErrorHandler.getErrorMessage(e, context: 'updateProfile')));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    }
   }
 
   @override

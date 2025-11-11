@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:stichanda_driver/data/models/profile_model.dart';
 import 'package:stichanda_driver/helper/firebase_error_handler.dart';
+import 'package:stichanda_driver/helper/upload_image.dart';
 // all firebase logic here
 
 class AuthRepo{
@@ -36,34 +38,77 @@ class AuthRepo{
     }
   }
 
-  Future<AuthResult> signUpWithEmailAndPassword(String email, String password,String fname,String lname,String phone) async {
+  Future<AuthResult> signUpWithEmailAndPassword(String email, String password,String fname,String lname,String phone,XFile? cnicImage) async {
     try {
+      // Create auth user first to obtain uid for storage path
       UserCredential userCredential = await _instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      String uid=userCredential.user!.uid;
-      await _firestore.collection('driver').doc(uid).set({
-        'driver_id': uid,
-        'email': email,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-        'name':'$fname $lname',
-        'availiability_status':0, //0->offline , 1->online
-        'cnic_image_path':'',// after uploading cnic image to supabase
-        'current_location':{
-          'longitude':0.0,
-          'latitude':0.0
-        },
-        'is_assigned':0,
-        'phone':phone,
-        'verification_status':0 // 0->pending, 1->verified, 2->rejected
 
-      });
+      final firebaseUser = userCredential.user!;
+
+      // Validate CNIC image presence
+      if (cnicImage == null) {
+        try { await firebaseUser.delete(); } catch (_) { await _instance.signOut(); }
+        return AuthResult(
+          success: false,
+          message: 'CNIC image is required. Please upload and try again.',
+        );
+      }
+
+      // Upload CNIC image (no picker here)
+      final url = await uploadImageToSupabase(
+        role: 'driver',
+        uid: firebaseUser.uid,
+        type: 'cnic',
+        file: cnicImage,
+      );
+
+      // If upload failed, rollback the created auth user and abort
+      if (url == null || url.isEmpty) {
+        try { await firebaseUser.delete(); } catch (_) { await _instance.signOut(); }
+        return AuthResult(
+          success: false,
+          message: 'Failed to upload CNIC image. Please try again.',
+        );
+      }
+
+      // Create driver profile in Firestore
+      try {
+        await _firestore.collection('driver').doc(firebaseUser.uid).set({
+          'driver_id': firebaseUser.uid,
+          'email': email,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+          'name':'$fname $lname',
+          'availiability_status':0, // 0 -> offline, 1 -> online
+          'cnic_image_path':url,
+          'profile_image_path': null, // initialize empty; set via Edit Profile upload later
+          'current_location':{
+            'longitude':0.0,
+            'latitude':0.0
+          },
+          'is_assigned':0,
+          'phone':phone,
+          'verification_status':0 // 0 -> pending, 1 -> verified, 2 -> rejected
+        });
+
+      } on FirebaseException catch (e) {
+        // Rollback user on Firestore failure too
+        FirebaseErrorHandler.getErrorMessage(e, context: 'signUp_driver_set');
+        try { await firebaseUser.delete(); } catch (_) { await _instance.signOut(); }
+        return AuthResult(
+          success: false,
+          message: FirebaseErrorHandler.getErrorMessage(e, context: 'signUp_driver_set'),
+        );
+      }
+
+      // All good
       return AuthResult(
         success: true,
         message: 'Sign-up successful',
-        user: userCredential.user,
+        user: firebaseUser,
       );
     } on FirebaseAuthException catch (e) {
       return AuthResult(
@@ -132,13 +177,20 @@ class AuthRepo{
 
   Future<bool> updateActiveStatus(int status){
     String uid=_instance.currentUser!.uid;
-    return _firestore.collection('driver').doc(uid).update({
-      'availiability_status':status,
-      'updated_at': FieldValue.serverTimestamp(),
-    }).then((value) => true).catchError((error){
-      return false;
-    });
-
+    try{
+      return _firestore.collection('driver').doc(uid).update({
+        'availiability_status':status,
+        'updated_at': FieldValue.serverTimestamp(),
+      }).then((value) => true).catchError((error){
+        if (error is FirebaseException) {
+          // log to Firestore errors collection
+          FirebaseErrorHandler.getErrorMessage(error, context: 'updateActiveStatus');
+        }
+        return false;
+      });
+    } catch (e) {
+      return Future.value(false);
+    }
   }
 
 

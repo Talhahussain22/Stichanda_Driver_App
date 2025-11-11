@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,9 +23,9 @@ class OrderState extends Equatable {
     this.errorMessage,
     this.selectedOrder,
     this.currentOrder,
-    this.todaysOrderCount=2,
-    this.weeklyOrderCount=5,
-    this.totalOrderCount=20,
+    this.todaysOrderCount = 0,
+    this.weeklyOrderCount = 0,
+    this.totalOrderCount = 0,
   });
 
   OrderState copyWith({
@@ -34,6 +35,9 @@ class OrderState extends Equatable {
     OrderModel? selectedOrder,
     OrderModel? currentOrder,
     bool clearCurrentOrder = false,
+    int? todaysOrderCount,
+    int? weeklyOrderCount,
+    int? totalOrderCount,
   }) {
     return OrderState(
       isLoading: isLoading ?? this.isLoading,
@@ -41,37 +45,101 @@ class OrderState extends Equatable {
       errorMessage: errorMessage,
       selectedOrder: selectedOrder ?? this.selectedOrder,
       currentOrder: clearCurrentOrder ? null : (currentOrder ?? this.currentOrder),
+      todaysOrderCount: todaysOrderCount ?? this.todaysOrderCount,
+      weeklyOrderCount: weeklyOrderCount ?? this.weeklyOrderCount,
+      totalOrderCount: totalOrderCount ?? this.totalOrderCount,
     );
   }
 
   @override
-  List<Object?> get props => [isLoading, orders, errorMessage, selectedOrder, currentOrder];
+  List<Object?> get props => [
+    isLoading,
+    orders,
+    errorMessage,
+    selectedOrder,
+    currentOrder,
+    todaysOrderCount,
+    weeklyOrderCount,
+    totalOrderCount,
+  ];
 }
 
 class OrderCubit extends Cubit<OrderState> {
   final DriverOrderRepository _orderRepository;
   StreamSubscription<List<OrderModel>>? _unassignedSub;
   StreamSubscription<List<OrderModel>>? _assignedSub;
+  StreamSubscription<List<OrderModel>>? _historySub;
+
+  // Cache of driver's current location for filtering
+  double? _filterLat;
+  double? _filterLng;
+  static const double _maxDistanceKm = 5.0;
 
   OrderCubit({required DriverOrderRepository orderRepository})
       : _orderRepository = orderRepository,
         super(const OrderState());
 
-  // Subscribe to unassigned orders in realtime
-  void subscribeToUnassignedOrders() {
-    // start loading
+  // Haversine distance in km
+  double _distanceKm(double lat1, double lon1, double lat2, double lon2) {
+    const double R = 6371.0; // Earth radius in km
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_deg2rad(lat1)) * math.cos(_deg2rad(lat2)) *
+            math.sin(dLon / 2) * math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return R * c;
+  }
+
+  double _deg2rad(double deg) => deg * (math.pi / 180.0);
+
+  bool _isWithinRadius(OrderModel o) {
+    if (_filterLat == null || _filterLng == null) return true; // no filter available
+    final latStr = o.pickupLocation.latitude;
+    final lngStr = o.pickupLocation.longitude;
+    final lat = double.tryParse(latStr);
+    final lng = double.tryParse(lngStr);
+    if (lat == null || lng == null) return false;
+    final dist = _distanceKm(_filterLat!, _filterLng!, lat, lng);
+    return dist < _maxDistanceKm;
+  }
+
+  void subscribeToUnassignedOrders({double? currentLat, double? currentLng}) {
+    if (currentLat != null && currentLng != null) {
+      if (currentLat.abs() > 0.0001 || currentLng.abs() > 0.0001) {
+        _filterLat = currentLat;
+        _filterLng = currentLng;
+      }
+    }
+
     emit(state.copyWith(isLoading: true, errorMessage: null));
     _unassignedSub?.cancel();
     _unassignedSub = _orderRepository
-        .streamOrders('unassigned', null)
+        .streamUnassignedOrders()
         .listen((orders) {
-      emit(state.copyWith(isLoading: false, orders: orders, errorMessage: null));
+      final filtered = orders.where(_isWithinRadius).toList();
+      emit(state.copyWith(isLoading: false, orders: filtered, errorMessage: null));
     }, onError: (error) {
       emit(state.copyWith(isLoading: false, errorMessage: error.toString()));
     });
   }
 
-  // Subscribe to current driver's assigned order in realtime
+  Future<void> refreshKpis() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final kpis = await _orderRepository.getCompletedKpis(uid);
+
+      emit(state.copyWith(
+        todaysOrderCount: kpis['today'] ?? 0,
+        weeklyOrderCount: kpis['week'] ?? 0,
+        totalOrderCount: kpis['total'] ?? 0,
+      ));
+
+    } catch (_) {
+    }
+  }
+
   void subscribeToCurrentOrder() {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     final user = FirebaseAuth.instance.currentUser;
@@ -81,7 +149,7 @@ class OrderCubit extends Cubit<OrderState> {
     }
     _assignedSub?.cancel();
     _assignedSub = _orderRepository
-        .streamOrders('assigned', user.uid)
+        .streamDriverOrders(user.uid)
         .listen((orders) {
       final current = orders.isNotEmpty ? orders.first : null;
       emit(state.copyWith(
@@ -89,63 +157,29 @@ class OrderCubit extends Cubit<OrderState> {
         currentOrder: current,
         clearCurrentOrder: current == null,
       ));
+      refreshKpis();
     }, onError: (error) {
       emit(state.copyWith(isLoading: false, errorMessage: error.toString()));
     });
+    refreshKpis();
   }
 
-  Future<void> fetchCurrentOrder() async {
+  void subscribeToHistory() {
     emit(state.copyWith(isLoading: true, errorMessage: null));
-
-    try {
-      String userId=FirebaseAuth.instance.currentUser!.uid;
-      final orders = await _orderRepository.fetchOrders('assigned',userId); // Fetch all orders
-      final currentOrder = orders.isNotEmpty ? orders.first : null;
-      emit(state.copyWith(
-        isLoading: false,
-        currentOrder: currentOrder,
-        clearCurrentOrder: currentOrder == null,
-      ));
-    } on FirebaseAuthException catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: FirebaseErrorHandler.getErrorMessage(e, context: 'fetchCurrentOrder'),
-      ));
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      emit(state.copyWith(isLoading: false));
+      return;
     }
-    catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      ));
-    }
+    _historySub?.cancel();
+    _historySub = _orderRepository.streamHistoryOrders(user.uid).listen((orders) {
+      emit(state.copyWith(isLoading: false, orders: orders));
+    }, onError: (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    });
   }
 
 
-
-  /// 🔹 Fetch all orders (with order_details)
-  Future<void> fetchUnAssignedOrders() async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
-
-    try {
-      final orders = await _orderRepository.fetchOrders('unassigned', null);
-
-      emit(state.copyWith(
-        isLoading: false,
-        orders: orders,
-      ));
-    } on FirebaseAuthException catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: FirebaseErrorHandler.getErrorMessage(e, context: 'fetchUnAssignedOrders'),
-      ));
-    }
-    catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      ));
-    }
-  }
 
   Future<bool> acceptOrder(String orderId) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
@@ -153,13 +187,14 @@ class OrderCubit extends Cubit<OrderState> {
     try {
       bool success = await _orderRepository.acceptOrder(orderId);
       if (success) {
-        // Refresh the unassigned list and current order
         final futures = await Future.wait([
-          _orderRepository.fetchOrders('unassigned', null),
-          _orderRepository.fetchOrders('assigned', FirebaseAuth.instance.currentUser!.uid),
+          _orderRepository.fetchUnassignedOrders(),
+          _orderRepository.fetchDriverOrders(FirebaseAuth.instance.currentUser!.uid),
         ]);
-        final unassigned = futures[0];
+        var unassigned = futures[0];
         final assigned = futures[1];
+        // Apply distance filter to refreshed unassigned orders
+        unassigned = unassigned.where(_isWithinRadius).toList();
         final current = assigned.isNotEmpty ? assigned.first : null;
 
         emit(state.copyWith(
@@ -192,12 +227,10 @@ class OrderCubit extends Cubit<OrderState> {
     }
   }
 
-  /// 🔹 Select an order (for order detail screen)
   void selectOrder(OrderModel order) {
     emit(state.copyWith(selectedOrder: order));
   }
 
-  /// Load a single order by ID and set as selected
   Future<void> loadOrderById(String orderId) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
@@ -213,13 +246,11 @@ class OrderCubit extends Cubit<OrderState> {
     }
   }
 
-  /// Update order status and reflect in orders, selectedOrder, and currentOrder
-  void updateOrderStatus(String orderId, String newStatus) async {
+  void updateOrderStatus(String orderId, int newStatus) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
     try {
       await _orderRepository.updateOrderStatus(orderId, newStatus);
-      // Update collections
       final updatedOrders = state.orders.map((order) {
         if (order.orderId == orderId) {
           return order.copyWith(status: newStatus);
@@ -227,7 +258,6 @@ class OrderCubit extends Cubit<OrderState> {
         return order;
       }).toList();
 
-      // Update selected/current if matching
       final updatedSelected = (state.selectedOrder != null && state.selectedOrder!.orderId == orderId)
           ? state.selectedOrder!.copyWith(status: newStatus)
           : state.selectedOrder;
@@ -252,20 +282,15 @@ class OrderCubit extends Cubit<OrderState> {
     }
   }
 
-  /// Complete selected order: set backend to completed and free driver assignment
-  Future<void> completeSelectedOrder() async {
+  Future<void> completeSelectedOrder(int completionStatus) async {
     final sel = state.selectedOrder;
     if (sel == null) return;
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
-      await _orderRepository.completeOrder(sel.orderId);
-      // Reflect completion in all views
+      await _orderRepository.completeOrder(sel.orderId, completionStatus);
       final updatedOrders = state.orders.map((o) =>
-          o.orderId == sel.orderId ? o.copyWith(status: 'completed') : o).toList();
-
-      final updatedSelected = sel.copyWith(status: 'completed');
-
-      // Clear current order if it was the same
+          o.orderId == sel.orderId ? o.copyWith(status: completionStatus) : o).toList();
+      final updatedSelected = sel.copyWith(status: completionStatus);
       final updatedCurrent = (state.currentOrder != null && state.currentOrder!.orderId == sel.orderId)
           ? null
           : state.currentOrder;
@@ -286,15 +311,18 @@ class OrderCubit extends Cubit<OrderState> {
     }
   }
 
-  /// 🔹 Clear state (for logout or refresh)
+
   void clearOrders() {
     emit(const OrderState());
   }
+
+
 
   @override
   Future<void> close() {
     _unassignedSub?.cancel();
     _assignedSub?.cancel();
+    _historySub?.cancel();
     return super.close();
   }
 }

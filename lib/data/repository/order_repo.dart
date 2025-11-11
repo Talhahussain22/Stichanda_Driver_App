@@ -9,74 +9,97 @@ class DriverOrderRepository {
   final _instance=FirebaseAuth.instance;
   final _firestore=FirebaseFirestore.instance;
 
-  Future<List<OrderModel>> fetchOrders(String status,String? riderId) async {
+  Future<List<OrderModel>> fetchUnassignedOrders() async {
     final col = _firestore.collection('order');
-    Query<Map<String, dynamic>> query = col.where('status', isEqualTo: status);
-    if (riderId != null) {
-      query = query.where('rider_id', isEqualTo: riderId);
-    }
-
-    final querySnapshot = await query.get();
-
-    final baseOrders = querySnapshot.docs
-        .map((doc) => OrderModel.fromJson(doc.data()))
-        .toList();
-
-    final enriched = await Future.wait(baseOrders.map((order) async {
-      // Fetch customer and tailor documents by ID
-      DocumentSnapshot<Map<String, dynamic>> customerSnap =
-          await _firestore.collection('customer').doc(order.customerId).get();
-
+    final snapshot = await col.where('status', whereIn: [0, 6]).get();
+    final base = snapshot.docs.map((d) => OrderModel.fromJson(d.data())).toList();
+    return Future.wait(base.map((o) async {
+      final customerSnap = await _firestore.collection('customer').doc(o.customerId).get();
       DocumentSnapshot<Map<String, dynamic>>? tailorSnap;
-      if (order.tailorId != null && order.tailorId!.isNotEmpty) {
-        tailorSnap = await _firestore.collection('tailor').doc(order.tailorId!).get();
+      if (o.tailorId != null && o.tailorId!.isNotEmpty) {
+        tailorSnap = await _firestore.collection('tailor').doc(o.tailorId!).get();
       }
-
-      final customerInfo = (customerSnap.exists && (customerSnap.data() != null))
-          ? CustomerInfo.fromJson(customerSnap.data() as Map<String, dynamic>)
+      final customerInfo = (customerSnap.exists && customerSnap.data()!=null)
+          ? CustomerInfo.fromJson(customerSnap.data() as Map<String,dynamic>)
           : null;
-      final tailorInfo = (tailorSnap != null && tailorSnap.exists && (tailorSnap.data() != null))
-          ? TailorInfo.fromJson(tailorSnap.data() as Map<String, dynamic>)
+      final tailorInfo = (tailorSnap!=null && tailorSnap.exists && tailorSnap.data()!=null)
+          ? TailorInfo.fromJson(tailorSnap.data() as Map<String,dynamic>)
           : null;
-
-      return order.copyWith(customer: customerInfo, tailor: tailorInfo);
+      return o.copyWith(customer: customerInfo, tailor: tailorInfo);
     }));
-
-    return enriched;
   }
 
-  Stream<List<OrderModel>> streamOrders(String status, String? riderId) {
+  Stream<List<OrderModel>> streamUnassignedOrders() {
     final col = _firestore.collection('order');
-    Query<Map<String, dynamic>> query = col.where('status', isEqualTo: status);
-    if (riderId != null) {
-      query = query.where('rider_id', isEqualTo: riderId);
-    }
-
+    final query = col.where('status', whereIn: [0, 6]);
     return query.snapshots().asyncMap((snapshot) async {
-      final baseOrders = snapshot.docs.map((doc) => OrderModel.fromJson(doc.data())).toList();
-
-      final enriched = await Future.wait(baseOrders.map((order) async {
-        final customerSnap = await _firestore.collection('customer').doc(order.customerId).get();
+      final base = snapshot.docs.map((d) => OrderModel.fromJson(d.data())).toList();
+      return Future.wait(base.map((o) async {
+        final customerSnap = await _firestore.collection('customer').doc(o.customerId).get();
         DocumentSnapshot<Map<String, dynamic>>? tailorSnap;
-        if (order.tailorId != null && order.tailorId!.isNotEmpty) {
-          tailorSnap = await _firestore.collection('tailor').doc(order.tailorId!).get();
+        if (o.tailorId != null && o.tailorId!.isNotEmpty) {
+          tailorSnap = await _firestore.collection('tailor').doc(o.tailorId!).get();
         }
-
-        final customerInfo = (customerSnap.exists && (customerSnap.data() != null))
-            ? CustomerInfo.fromJson(customerSnap.data() as Map<String, dynamic>)
+        final customerInfo = (customerSnap.exists && customerSnap.data()!=null)
+            ? CustomerInfo.fromJson(customerSnap.data() as Map<String,dynamic>)
             : null;
-        final tailorInfo = (tailorSnap != null && tailorSnap.exists && (tailorSnap.data() != null))
-            ? TailorInfo.fromJson(tailorSnap.data() as Map<String, dynamic>)
+        final tailorInfo = (tailorSnap!=null && tailorSnap.exists && tailorSnap.data()!=null)
+            ? TailorInfo.fromJson(tailorSnap.data() as Map<String,dynamic>)
             : null;
-
-        return order.copyWith(customer: customerInfo, tailor: tailorInfo);
+        return o.copyWith(customer: customerInfo, tailor: tailorInfo);
       }));
-
-      return enriched;
     });
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+  Future<List<OrderModel>> fetchDriverOrders(String riderId) async {
+    final col = _firestore.collection('order');
+    final snapshot = await col
+        .where('rider_id', isEqualTo: riderId)
+        .where('status', whereIn: [1, 2, 7, 8])
+        .get();
+    final base = snapshot.docs.map((d)=>OrderModel.fromJson(d.data())).toList();
+    return Future.wait(base.map((o) async {
+      final customerSnap = await _firestore.collection('customer').doc(o.customerId).get();
+      DocumentSnapshot<Map<String, dynamic>>? tailorSnap;
+      if (o.tailorId != null && o.tailorId!.isNotEmpty) {
+        tailorSnap = await _firestore.collection('tailor').doc(o.tailorId!).get();
+      }
+      final customerInfo = (customerSnap.exists && customerSnap.data()!=null)
+          ? CustomerInfo.fromJson(customerSnap.data() as Map<String,dynamic>)
+          : null;
+      final tailorInfo = (tailorSnap!=null && tailorSnap.exists && tailorSnap.data()!=null)
+          ? TailorInfo.fromJson(tailorSnap.data() as Map<String,dynamic>)
+          : null;
+      return o.copyWith(customer: customerInfo, tailor: tailorInfo);
+    }));
+  }
+
+  Stream<List<OrderModel>> streamDriverOrders(String riderId) {
+    final col = _firestore.collection('order');
+    final query = col
+        .where('rider_id', isEqualTo: riderId)
+        .where('status', whereIn: [1, 2, 7, 8]);
+
+    return query.snapshots().asyncMap((snapshot) async {
+      final base = snapshot.docs.map((d)=>OrderModel.fromJson(d.data())).toList();
+      return Future.wait(base.map((o) async {
+        final customerSnap = await _firestore.collection('customer').doc(o.customerId).get();
+        DocumentSnapshot<Map<String, dynamic>>? tailorSnap;
+        if (o.tailorId != null && o.tailorId!.isNotEmpty) {
+          tailorSnap = await _firestore.collection('tailor').doc(o.tailorId!).get();
+        }
+        final customerInfo = (customerSnap.exists && customerSnap.data()!=null)
+            ? CustomerInfo.fromJson(customerSnap.data() as Map<String,dynamic>)
+            : null;
+        final tailorInfo = (tailorSnap!=null && tailorSnap.exists && tailorSnap.data()!=null)
+            ? TailorInfo.fromJson(tailorSnap.data() as Map<String,dynamic>)
+            : null;
+        return o.copyWith(customer: customerInfo, tailor: tailorInfo);
+      }));
+    });
+  }
+
+  Future<void> updateOrderStatus(String orderId, int newStatus) async {
     try {
       await _firestore.collection('order').doc(orderId).update({
         'status': newStatus,
@@ -87,11 +110,12 @@ class DriverOrderRepository {
     }
   }
 
-  Future<void> completeOrder(String orderId) async {
+
+  Future<void> completeOrder(String orderId, int completionStatus) async {
     String currentRiderId=_instance.currentUser!.uid;
     try {
       await _firestore.collection('order').doc(orderId).update({
-        'status': 'completed',
+        'status': completionStatus,
         'updated_at': FieldValue.serverTimestamp(),
       });
       await _firestore.collection('driver').doc(currentRiderId).update({
@@ -114,17 +138,22 @@ class DriverOrderRepository {
           throw Exception('Order does not exist.');
         }
         final data = snapshot.data() as Map<String, dynamic>;
-        final String status = (data['status'] ?? '').toString();
+        final int status = data['status'] as int;
         final dynamic rider = data['rider_id'];
 
         final bool alreadyAssigned = rider != null && rider.toString().isNotEmpty && rider.toString() != 'null';
-        if (status != 'unassigned' || alreadyAssigned) {
+
+        // Check if order is available for assignment (status 0 or 6)
+        if ((status != 0 && status != 6) || alreadyAssigned) {
           throw Exception('Order already accepted by another driver.');
         }
 
+        // Set status to 1 (Assigned) if it was 0, or 7 (Assigned to Rider) if it was 6
+        final int newStatus = (status == 0) ? 1 : 7;
+
         transaction.update(orderRef, {
           'rider_id': currentRiderId,
-          'status': 'assigned',
+          'status': newStatus,
           'updated_at': FieldValue.serverTimestamp(),
         });
       });
@@ -169,4 +198,73 @@ class DriverOrderRepository {
     }
   }
 
+
+
+  Stream<List<OrderModel>> streamHistoryOrders(String riderId) {
+    final col = _firestore.collection('order');
+    final query = col
+        .where('rider_id', isEqualTo: riderId)
+        .where('status', whereIn: [3, 9])
+        .orderBy('updated_at', descending: true);
+    return query.snapshots().asyncMap((snapshot) async {
+      final base = snapshot.docs.map((d)=>OrderModel.fromJson(d.data())).toList();
+      return Future.wait(base.map((o) async {
+        final customerSnap = await _firestore.collection('customer').doc(o.customerId).get();
+        DocumentSnapshot<Map<String, dynamic>>? tailorSnap;
+        if (o.tailorId != null && o.tailorId!.isNotEmpty) {
+          tailorSnap = await _firestore.collection('tailor').doc(o.tailorId!).get();
+        }
+        final customerInfo = (customerSnap.exists && customerSnap.data()!=null)
+            ? CustomerInfo.fromJson(customerSnap.data() as Map<String,dynamic>)
+            : null;
+        final tailorInfo = (tailorSnap!=null && tailorSnap.exists && tailorSnap.data()!=null)
+            ? TailorInfo.fromJson(tailorSnap.data() as Map<String,dynamic>)
+            : null;
+        return o.copyWith(customer: customerInfo, tailor: tailorInfo);
+      }));
+    });
+  }
+
+  Future<Map<String, int>> getCompletedKpis(String riderId) async {
+    final col = _firestore.collection('order');
+    final snapshot = await col
+        .where('rider_id', isEqualTo: riderId)
+        .where('status', whereIn: [3, 9])
+        .get();
+
+    int total = 0;
+    int today = 0;
+    int last7 = 0;
+
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      DateTime ts;
+      final updated = data['updated_at'];
+      final created = data['created_at'];
+      if (updated is Timestamp) {
+        ts = updated.toDate();
+      } else if (created is Timestamp) {
+        ts = created.toDate();
+      } else {
+        // If no timestamp, count toward total but not date-bounded metrics
+        total += 1;
+        continue;
+      }
+      total += 1;
+      if (ts.isAfter(startOfToday)) today += 1;
+      if (ts.isAfter(sevenDaysAgo)) last7 += 1;
+    }
+
+    return {
+      'today': today,
+      'week': last7,
+      'total': total,
+    };
+  }
+
 }
+

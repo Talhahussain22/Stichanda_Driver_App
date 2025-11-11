@@ -55,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.errorMessage!)),
           );
+          context.read<AuthCubit>().clearError();
         }
         // Navigate after successful login based on verification status
         if (state.isAuthenticated && state.profile != null) {

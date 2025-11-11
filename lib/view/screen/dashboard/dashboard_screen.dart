@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:stichanda_driver/controller/authCubit.dart';
-import 'package:stichanda_driver/view/screen/order/order_screen.dart';
+import 'package:stichanda_driver/view/screen/order/order_history_screen.dart';
 import 'package:stichanda_driver/view/screen/profile/profile_screen.dart';
 import 'package:stichanda_driver/view/screen/request/order_request.dart';
 import 'package:stichanda_driver/modules/chat/screens/conversations_screen.dart';
@@ -26,7 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     HomeScreenUI(),
     OrderRequestScreen(),
     ConversationsScreen(),
-    const OrderScreen(),
+    const OrderHistoryScreen(),
     const ProfileScreen()
   ];
 

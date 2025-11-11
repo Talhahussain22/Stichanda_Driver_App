@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../data/models/order_model.dart';
 import '../screen/order/order_details.dart';
 
-/// Simple data model to represent an order.
-/// You can replace or extend this with your real data class.
-/// A reusable order item card with a “Details” and “Direction” button.
 class OrderWidget extends StatelessWidget {
   final OrderModel order;
   final bool isRunningOrder;
@@ -20,13 +16,10 @@ class OrderWidget extends StatelessWidget {
     this.onDetailsPressed,
   });
 
-
-
   @override
   Widget build(BuildContext context) {
-    final bool isCOD = order.paymentMethod == 'cash_on_delivery';
-    final bool isPaid = order.paymentMethod == 'paid';
-    final bool isPickedUp = order.status == 'picked_up'; // this is very useful for determining which location to show and navigate to,
+    final bool showDropoff = (order.status == 2 || order.status == 7);
+    final displayLocation = showDropoff ? order.currentDropoffLocation : order.currentPickupLocation;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -45,7 +38,7 @@ class OrderWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Top Row: Order ID + Payment Type ---
+          // --- Top Row: Order ID ---
           Row(
             children: [
               Text(
@@ -59,45 +52,58 @@ class OrderWidget extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: isCOD ? Colors.red : Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                isPaid
-                    ? 'Paid'
-                    : isCOD
-                    ? 'COD'
-                    : 'Digital',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              // Status badge
+
             ],
           ),
 
           const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              order.statusLabel,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
 
           // --- Address Information ---
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_outlined, size: 20),
+              Icon(
+                showDropoff ? Icons.location_on : Icons.location_on_outlined,
+                size: 20,
+                color: showDropoff ? Theme.of(context).primaryColor : null,
+              ),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                 isPickedUp
-                      ? order.dropoffLocation.location
-                      : order.pickupLocation.location,
-
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).disabledColor,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      showDropoff ? 'Deliver to:' : 'Pick up from:',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      displayLocation.location,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).disabledColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -112,7 +118,7 @@ class OrderWidget extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onDetailsPressed ??
                           () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId!)));
+                        Navigator.push(context, MaterialPageRoute(builder: (context)=>DriverOrderDetailsScreen(orderId: order.orderId)));
                       },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -121,31 +127,7 @@ class OrderWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () async {
 
-                    final lat =isPickedUp?order.dropoffLocation.latitude:order.pickupLocation.latitude;
-                    final lng =isPickedUp? order.dropoffLocation.longitude:order.pickupLocation.longitude;
-                    final url =
-                        'https://www.google.com/maps/dir/?api=1&destination=${double.parse(lat)},${double.parse(lng)}&mode=d';
-
-                    if (await canLaunchUrl(Uri.parse(url))) {
-                      await launchUrl(Uri.parse(url),
-                          mode: LaunchMode.externalApplication);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not launch: $url')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.directions),
-                  label: const Text('Direction'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
             ],
           ),
         ],

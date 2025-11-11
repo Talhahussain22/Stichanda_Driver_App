@@ -28,6 +28,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
   void initState() {
     super.initState();
     // subscribe to current order in realtime
+
     context.read<OrderCubit>().subscribeToCurrentOrder();
   }
   @override

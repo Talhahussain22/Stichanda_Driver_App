@@ -49,18 +49,24 @@ class _HomepageAppBarState extends State<HomepageAppBar> {
               inactiveColor: Colors.grey,
               value: isActive,
               onToggle: (bool value) async {
-
                 if (state.isLoading) return;
                 final authCubit = context.read<AuthCubit>();
                 final newStatus = value ? 1 : 0;
-                await authCubit.updateActiveStatus(newStatus);
-                if (newStatus == 1) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("You're now ONLINE — tracking started ✅")),
-                  );
+                final ok = await authCubit.updateActiveStatus(newStatus);
+                if (!context.mounted) return;
+                if (ok) {
+                  if (newStatus == 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("You're now ONLINE — tracking started ✅")),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("You're now OFFLINE — tracking stopped 🚫")),
+                    );
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("You're now OFFLINE — tracking stopped 🚫")),
+                    const SnackBar(content: Text("Could not update availability. Please try again.")),
                   );
                 }
               },

@@ -4,7 +4,7 @@ class OrderModel {
   final String? tailorId;
   final String? riderId;
   final double totalPrice;
-  String status;
+  int status;
   final String paymentMethod;
   final String paymentStatus;
   final Address pickupLocation;
@@ -16,6 +16,50 @@ class OrderModel {
 
   final CustomerInfo? customer;
   final TailorInfo? tailor;
+
+
+  CustomerInfo? get sender {
+    if (status >= 0 && status <= 3) return customer;
+    if (status >= 4 && status <= 10) {
+
+      return tailor != null
+          ? CustomerInfo(
+              id: tailor!.id,
+              name: tailor!.name,
+              phone: tailor!.phone,
+              address: tailor!.address
+            )
+          : null;
+    }
+    return null;
+  }
+
+  CustomerInfo? get receiver {
+    if (status >= 0 && status <= 3) {
+      return tailor != null
+          ? CustomerInfo(
+              id: tailor!.id,
+              name: tailor!.name,
+              phone: tailor!.phone,
+              address: tailor!.address
+            )
+          : null;
+    }
+    if (status >= 4 && status <= 10) return customer;
+    return null;
+  }
+
+  Address get currentPickupLocation {
+    if (status >= 0 && status <= 3) return pickupLocation;  // Customer location
+    if (status >= 6 && status <= 10) return dropoffLocation; // Tailor location
+    return pickupLocation;
+  }
+
+  Address get currentDropoffLocation {
+    if (status >= 0 && status <= 3) return dropoffLocation; // Tailor location
+    if (status >= 6 && status <= 10) return pickupLocation; // Customer location
+    return dropoffLocation;
+  }
 
   OrderModel({
     required this.orderId,
@@ -44,6 +88,13 @@ class OrderModel {
       return 0.0;
     }
 
+    int _parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
     Map<String, dynamic> pickup = json['pickup_location'] ?? {};
     Map<String, dynamic> dropoff = json['dropoff_location'] ?? {};
 
@@ -53,7 +104,7 @@ class OrderModel {
       tailorId: json['tailor_id']?.toString(),
       riderId: json['rider_id']?.toString(),
       totalPrice: _parseDouble(json['total_price']),
-      status: json['status'] ?? '',
+      status: _parseInt(json['status']),
       paymentMethod: json['payment_method'] ?? '',
       paymentStatus: json['payment_status'] ?? '',
       pickupLocation: Address.fromJson(pickup),
@@ -99,7 +150,7 @@ class OrderModel {
     String? tailorId,
     String? riderId,
     double? totalPrice,
-    String? status,
+    int? status,
     String? paymentMethod,
     String? paymentStatus,
     Address? pickupLocation,
@@ -131,9 +182,27 @@ class OrderModel {
     );
   }
 
+  // Helper method to get status label
+  String get statusLabel {
+    switch (status) {
+      case 0: return 'Unassigned';
+      case 1: return 'Assigned';
+      case 2: return 'Picked up from Customer';
+      case 3: return 'Delivered to Tailor';
+      case 4: return 'Received by Tailor';
+      case 5: return 'Completed by Tailor';
+      case 6: return 'Waiting for Rider';
+      case 7: return 'Assigned to Rider';
+      case 8: return 'Picked up from Tailor';
+      case 9: return 'Delivered to Customer';
+      case 10: return 'Received by Customer';
+      default: return 'Unknown';
+    }
+  }
+
   @override
   String toString() {
-    return 'OrderModel(orderId: $orderId, totalPrice: $totalPrice, status: $status, customer: \\${customer?.name ?? ''}, tailor: \\${tailor?.name ?? ''})';
+    return 'OrderModel(orderId: $orderId, totalPrice: $totalPrice, status: $status, customer: ${customer?.name ?? ''}, tailor: ${tailor?.name ?? ''})';
   }
 }
 
