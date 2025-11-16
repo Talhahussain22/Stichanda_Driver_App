@@ -84,40 +84,9 @@ class HistoryOrderWidget extends StatelessWidget {
                   // Header row with order ID and badges
                   Row(
                     children: [
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text:
-                                'Order id',
-                                style: robotoRegular.copyWith(
-                                  fontSize: Dimensions.fontSizeSmall,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color
-                                      ?.withValues(alpha: 0.7),
-                                ),
-                              ),
-                              TextSpan(
-                                text: '#${orderModel.orderId}',
-                                style: robotoBold.copyWith(
-                                  fontSize: Dimensions.fontSizeDefault,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Admin tag
-
-                      // Parcel tag
-
+                      // Removed order id display per requirement
+                      const Spacer(),
+                      // space for potential future badges
                     ],
                   ),
 

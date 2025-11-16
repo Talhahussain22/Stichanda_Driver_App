@@ -20,15 +20,24 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   late TextEditingController emailController;
   late TextEditingController passwordController;
   final _formKey = GlobalKey<FormState>();
+  late AnimationController _controller;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
 
   @override
   void initState() {
     emailController = TextEditingController();
     passwordController = TextEditingController();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 850));
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    _controller.forward();
     super.initState();
     if (widget.initialSnack != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -86,114 +96,154 @@ class _LoginScreenState extends State<LoginScreen> {
             inAsyncCall: state.isLoading,
             color: Theme.of(context).primaryColor,
             child: Scaffold(
-              body: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 35),
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      'Please enter your details to sign in',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                    const SizedBox(height: 30),
-                    CustomTextField(
-                      hintText: 'Enter your email',
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: ValidationHelper.validateEmail,
-                    ),
-                    CustomTextField(
-                      hintText: 'Enter your password',
-                      obscureText: true,
-                      controller: passwordController,
-                      keyboardType: TextInputType.visiblePassword,
-                      validator: ValidationHelper.validatePassword,
-                    ),
-                    const SizedBox(height: 15),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          ForgotPasswordScreen()));
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.bold),
+              body: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 28),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight - 56),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Top content fills available space
+                                FadeTransition(
+                                  opacity: _fade,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      const SizedBox(height: 24),
+                                      Center(
+                                        child: Hero(
+                                          tag: 'app_logo',
+                                          child: CircleAvatar(
+                                            radius: 40,
+                                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                            child: Image.asset('assets/images/splash_logo.png', width: 56),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        'Welcome back',
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Please enter your details to sign in',
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      CustomTextField(
+                                        label: 'Email',
+                                        hintText: 'Enter your email',
+                                        controller: emailController,
+                                        keyboardType: TextInputType.emailAddress,
+                                        validator: ValidationHelper.validateEmail,
+                                        prefixIcon: const Icon(Icons.email_outlined),
+                                      ),
+                                      CustomTextField(
+                                        label: 'Password',
+                                        hintText: 'Enter your password',
+                                        obscureText: true,
+                                        controller: passwordController,
+                                        keyboardType: TextInputType.visiblePassword,
+                                        validator: ValidationHelper.validatePassword,
+                                        prefixIcon: const Icon(Icons.lock_outline),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton(
+                                          onPressed: () {
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordScreen()));
+                                          },
+                                          child: Text(
+                                            'Forgot Password?',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      CustomButton(
+                                        buttonText: 'Login',
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Theme.of(context).colorScheme.primary,
+                                            Theme.of(context).colorScheme.primaryContainer,
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                        onPressed: () async {
+                                          if (_formKey.currentState!.validate()) {
+                                            context.read<AuthCubit>().login(
+                                                  email: emailController.text.trim(),
+                                                  password: passwordController.text.trim(),
+                                                );
+                                          }
+                                        },
+                                        height: 52,
+                                        radius: 18,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+                                // Bottom sign-up row anchored to bottom via spaceBetween
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Don't have an account?",
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => SignupScreen()));
+                                      },
+                                      child: Text(
+                                        'Sign Up',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ],
                             ),
-                          )
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 20),
-                      child: CustomButton(
-                          buttonText: 'Login',
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              context.read<AuthCubit>().login(
-                                    email: emailController.text.trim(),
-                                    password:
-                                        passwordController.text.trim(),
-                                  );
-                            }
-                          }),
-                    ),
-                  ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-              persistentFooterButtons: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account?",
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => SignupScreen()));
-                      },
-                      child: Text(
-                        'Sign Up',
-                        style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    )
-                  ],
-                )
-              ],
-            ),
-          );
+            ), // end Scaffold
+          ); // end ModalProgressHUD
         },
-      ),
-    );
+      ), // end BlocBuilder
+    ); // end BlocListener
   }
 }

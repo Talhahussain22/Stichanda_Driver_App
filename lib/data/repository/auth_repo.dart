@@ -65,7 +65,7 @@ class AuthRepo{
         file: cnicImage,
       );
 
-      // If upload failed, rollback the created auth user and abort
+
       if (url == null || url.isEmpty) {
         try { await firebaseUser.delete(); } catch (_) { await _instance.signOut(); }
         return AuthResult(
@@ -74,7 +74,7 @@ class AuthRepo{
         );
       }
 
-      // Create driver profile in Firestore
+
       try {
         await _firestore.collection('driver').doc(firebaseUser.uid).set({
           'driver_id': firebaseUser.uid,

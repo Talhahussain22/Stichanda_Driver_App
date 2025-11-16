@@ -70,18 +70,17 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                     Expanded(
                       child: CountCard(
                         title: 'Today\'s Orders',
-                        backgroundColor: Theme.of(context).primaryColor,
-                        height: 180,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        height: 150,
                         value: state.todaysOrderCount.toString(),
                       ),
                     ),
                     const SizedBox(width: Dimensions.paddingSizeDefault),
                     Expanded(
                       child: CountCard(
-                        title: 'This Week\'s Orders',
-                        backgroundColor:
-                            Theme.of(context).primaryColor, // Example color
-                        height: 180,
+                        title: 'Week\'s Orders',
+                        backgroundColor: Theme.of(context).colorScheme.secondary,
+                        height: 150,
                         value: state.weeklyOrderCount.toString(),
                       ),
                     ),
@@ -90,9 +89,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                 const SizedBox(height: Dimensions.paddingSizeDefault),
                 CountCard(
                   title: 'Total Orders',
-                  backgroundColor:
-                      Theme.of(context).primaryColor, // Example color
-                  height: 140,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  height: 135,
                   value: state.totalOrderCount.toString(),
                 ),
                 const SizedBox(height: Dimensions.paddingSizeDefault),

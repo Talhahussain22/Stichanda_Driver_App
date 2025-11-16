@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:stichanda_driver/helper/upload_image.dart';
 import 'package:stichanda_driver/helper/validation_helper.dart';
 import 'package:stichanda_driver/view/base/custom_button.dart';
 import 'package:stichanda_driver/view/base/custom_text_field.dart';
@@ -69,6 +71,8 @@ class _SignupScreenState extends State<SignupScreen> {
       image = selectedImage;
     });
   }
+
+
 
   void cancelImage() {
     setState(() {
@@ -252,6 +256,7 @@ class _SignupScreenState extends State<SignupScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(left: 30),
         child: CustomButton(
+
           buttonText: page == 0 ? 'Next' : 'Sign Up',
           onPressed: () {
             if (page == 0) {

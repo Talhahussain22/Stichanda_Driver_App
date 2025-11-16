@@ -94,6 +94,7 @@ class OrderCubit extends Cubit<OrderState> {
   double _deg2rad(double deg) => deg * (math.pi / 180.0);
 
   bool _isWithinRadius(OrderModel o) {
+    print('aay');
     if (_filterLat == null || _filterLng == null) return true; // no filter available
     final latStr = o.pickupLocation.latitude;
     final lngStr = o.pickupLocation.longitude;
@@ -101,10 +102,12 @@ class OrderCubit extends Cubit<OrderState> {
     final lng = double.tryParse(lngStr);
     if (lat == null || lng == null) return false;
     final dist = _distanceKm(_filterLat!, _filterLng!, lat, lng);
+    print('distance: $dist km');
     return dist < _maxDistanceKm;
   }
 
   void subscribeToUnassignedOrders({double? currentLat, double? currentLng}) {
+
     if (currentLat != null && currentLng != null) {
       if (currentLat.abs() > 0.0001 || currentLng.abs() > 0.0001) {
         _filterLat = currentLat;
@@ -117,7 +120,9 @@ class OrderCubit extends Cubit<OrderState> {
     _unassignedSub = _orderRepository
         .streamUnassignedOrders()
         .listen((orders) {
+
       final filtered = orders.where(_isWithinRadius).toList();
+
       emit(state.copyWith(isLoading: false, orders: filtered, errorMessage: null));
     }, onError: (error) {
       emit(state.copyWith(isLoading: false, errorMessage: error.toString()));

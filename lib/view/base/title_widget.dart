@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../utils/dimension.dart';
@@ -21,54 +20,49 @@ class TitleWidget extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        /// Title text
         Text(
           title,
-          style: robotoMedium.copyWith(
-            fontSize: Dimensions.fontSizeLarge,
-          ),
+          style: robotoBold.copyWith(fontSize: Dimensions.fontSizeOverLarge),
         ),
-
-        /// View all + badge
         if (onTap != null)
           InkWell(
             onTap: onTap as void Function()?,
-            borderRadius: BorderRadius.circular(6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'View All',
-                  style: robotoMedium.copyWith(
-                    fontSize: Dimensions.fontSizeDefault, // bigger
-                    fontWeight: FontWeight.w600, // bolder
-                    color: Theme.of(context).primaryColor,
-                    decoration: TextDecoration.underline,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: robotoMedium.copyWith(
+                      fontSize: Dimensions.fontSizeDefault,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
-                ),
-
-                /// Badge with order count
-                if (orderCount != null)
-                  Container(
-                    margin: const EdgeInsets.only(left: 4), // closer
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      orderCount.toString(),
-                      style: robotoMedium.copyWith(
-                        fontSize: Dimensions.fontSizeDefault, // bigger
-                        fontWeight: FontWeight.bold, // bold
-                        color: Theme.of(context).primaryColor,
+                  if (orderCount != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        orderCount.toString(),
+                        style: robotoBold.copyWith(
+                          fontSize: Dimensions.fontSizeSmall,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                  ]
+                ],
+              ),
             ),
           ),
       ],

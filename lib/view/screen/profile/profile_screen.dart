@@ -64,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
+                              (route) => false,
                         );
                       },
                       child: const Text('Go to Login'),
@@ -86,12 +86,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(
                           width: 3,
-                          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                          color: Theme.of(context).colorScheme.primaryContainer,
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -99,13 +99,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: ClipOval(
                         child: (profile.profileImagePath.isNotEmpty
-                                ? Image.network(profile.profileImagePath, height: 100, width: 100, fit: BoxFit.cover)
-                                : null) ??
+                            ? Image.network(profile.profileImagePath, height: 100, width: 100, fit: BoxFit.cover)
+                            : null) ??
                             Container(
                               height: 100,
                               width: 100,
-                              color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                              child: const Icon(Icons.person, size: 48),
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                              child: Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary),
                             ),
                       ),
                     ),
@@ -119,15 +119,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         profile.name.isEmpty ? '—' : profile.name,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Chip(
                         label: Text(_verificationText(profile.verificationStatus)),
                         backgroundColor:
-                            _verificationColor(context, profile.verificationStatus).withValues(alpha: 0.1),
+                        _verificationColor(context, profile.verificationStatus).withValues(alpha: 0.12),
                         labelStyle: TextStyle(
                           color: _verificationColor(context, profile.verificationStatus),
                           fontWeight: FontWeight.w600,
@@ -148,9 +148,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
+                      border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.12)),
                     ),
                     child: Column(
                       children: [
@@ -170,9 +170,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
+                      border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.12)),
                     ),
                     child: Column(
                       children: [
@@ -272,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (iconColor ?? Theme.of(context).primaryColor).withValues(alpha: 0.1),
+                color: (iconColor ?? Theme.of(context).colorScheme.primaryContainer).withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon,
@@ -296,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       height: 1,
-      color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+      color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
     );
   }
 
@@ -306,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
+          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.32),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),

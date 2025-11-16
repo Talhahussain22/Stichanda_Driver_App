@@ -228,13 +228,23 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     await _profileSub?.cancel();
+    _profileSub = null;
     await _positionSub?.cancel();
     _positionSub = null;
     _lastAvailability = -1;
-    emit(state.copyWith(isLoading: true));
-    await _authRepo.signOut();
-    await _locationService.stop();
-    emit(const AuthState(isAuthenticated: false, profile: null, isLoading: false));
+    emit(state.copyWith(isLoading: true, clearErrorMessage: true));
+    try {
+      await _authRepo.signOut();
+      await _locationService.stop();
+      // After sign out, ensure FirebaseAuth currentUser is null before emitting final state
+      if (FirebaseAuth.instance.currentUser != null) {
+        // Force signOut again if edge case
+        try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+      }
+      emit(const AuthState(isAuthenticated: false, profile: null, isLoading: false));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: 'Logout failed: $e'));
+    }
   }
 
   Future<void> updateProfile({String? name, String? phone, String? imagePath}) async {

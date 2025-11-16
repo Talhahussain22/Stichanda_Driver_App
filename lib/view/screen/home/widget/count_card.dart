@@ -3,12 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 
-
 import '../../../../utils/dimension.dart';
 import '../../../../utils/style.dart';
 
 class CountCard extends StatelessWidget {
-  final Color backgroundColor;
+  final Color backgroundColor; // treated as accent color
   final String title;
   final String? value;
   final double height;
@@ -23,61 +22,68 @@ class CountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = backgroundColor;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       height: height,
-      width: MediaQuery.of(context).size.width,
+      width: double.infinity,
       padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.6)),
         boxShadow: [
           BoxShadow(
-            color: backgroundColor.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          value != null
-              ? AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 300),
-            style: robotoBold.copyWith(fontSize: 36, color: Colors.white),
-            child: Text(
-              value!,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          )
-              : Shimmer(
-            duration: const Duration(seconds: 2),
-            enabled: value == null,
-            color: Colors.grey[500]!,
-            child: Container(
-              height: 50,
-              width: 60,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-              ),
+          Container(
+            height: 4,
+            width: 32,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: Dimensions.paddingSizeDefault),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 300),
+          const SizedBox(height: 16),
+          value != null
+              ? AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 250),
+                  style: robotoBlack.copyWith(fontSize: 32, color: accent),
+                  child: Text(
+                    value!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              : Shimmer(
+                  duration: const Duration(seconds: 2),
+                  enabled: value == null,
+                  color: Colors.grey[500]!,
+                  child: Container(
+                    height: 36,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                    ),
+                  ),
+                ),
+          const SizedBox(height: 6),
+          Text(
+            title,
             style: robotoMedium.copyWith(
               fontSize: Dimensions.fontSizeLarge,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-            ),
+            maxLines: 2,
           ),
         ],
       ),

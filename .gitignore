@@ -44,6 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# FVM
+
 # Firebase generated / local
 .firebase/
 .firebase-plugins
@@ -53,3 +55,6 @@ firebase.json
 .firebaserc
 **/google-services.json.bak
 **/GoogleService-Info.plist.bak
+
+# FVM Version Cache
+.fvm/
